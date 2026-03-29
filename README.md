@@ -127,7 +127,7 @@ v24.14.1
 1. **Clone the repository**
 	```sh
 	git clone <repo-url>
-	cd TeamName_CSE540_FinalProject
+	cd Team-16-2026SpringB-CSE-540-Blockchain-Based-Supply-Chain-Provenance-System-Smart-Contract-Design
 	```
 
 2. **Change the diretory to blockchain**
