@@ -112,13 +112,13 @@ To prevent network load, all "heavy" dataâ€”such as PDFs, and complex metadataâ€
 1. Install NVM as mentioned: https://github.com/nvm-sh/nvm
 2. Install node veresion 24
 ```
-$ nvm install v24.14.10
+$ nvm install 24
 
 $ nvm use 24
-Now using node v24.14.10
+Now using node v24.14.1 (npm v11.11.0)
 
 $ node -v
-v24.14.10
+v24.14.1
 
 ```
 
