@@ -58,6 +58,20 @@ contract SupplyChainProvenance {
     // master ledger to store all products 
     mapping(uint256 => Product) public productLedger;
 
+    event ProductStatusUpdated(
+        uint256 indexed prodId, 
+        ProductStatus previousStatus, 
+        ProductStatus newStatus, 
+        address indexed actor,
+        address indexed newOwner,
+        string ipfsHash);
+
+
+    event RoleAssigned(
+        address indexed admin,
+        address indexed user, 
+        Role role
+    );
 
     constructor() {
         admin = msg.sender;
@@ -76,6 +90,7 @@ contract SupplyChainProvenance {
      */
     function assignRole(address user, Role role) public adminOnly {
         rolesMapping[user] = role;
+        emit RoleAssigned(admin, user, role);
     }
 
 
@@ -154,6 +169,81 @@ contract SupplyChainProvenance {
     * (receiving, quality check, returning to warehouse, putting on shelf, selling to consumer)
     *************************************************/
 
+    // retailer receive the product 
+    function receiveAtRetailer(uint256 prodId, string memory ipfsHash) public roleCheker(Role.Retailer){
+        Product storage product = productLedger[prodId];
+        require(product.producer != address(0), "Product does not exist.");
+        require(product.currentStatus == ProductStatus.InTransitToRetailer, "Invalid status transition");
+        require(bytes(ipfsHash).length > 0, "IPFS hash cannot be empty");
+
+        ProductStatus previousStatus = product.currentStatus;
+        product.currentStatus = ProductStatus.ShippedToRetailer;
+        product.currentOwner = msg.sender;
+        product.ipfsHash = ipfsHash;
+
+        emit ProductStatusUpdated(prodId, previousStatus, product.currentStatus, msg.sender, product.currentOwner, ipfsHash);
+    }
+
+    // retailer pass quality check of the product 
+    function retailerQualityCheckPassed(uint256 prodId, string memory ipfsHash) public roleCheker(Role.Retailer){
+        Product storage product = productLedger[prodId];
+        require(product.producer != address(0), "Product does not exist.");
+        require(product.currentOwner == msg.sender, "Only the current owner can perform quality check");
+        require(product.currentStatus == ProductStatus.ShippedToRetailer, "Invalid status transition");
+        require(bytes(ipfsHash).length > 0, "IPFS hash cannot be empty");
+
+        ProductStatus previousStatus = product.currentStatus;
+        product.currentStatus = ProductStatus.RetailerQualityCheckPassed;
+        product.ipfsHash = ipfsHash;
+
+        emit ProductStatusUpdated(prodId, previousStatus, product.currentStatus, msg.sender, product.currentOwner, ipfsHash);
+    }
+
+    // retailer return the product to warehouse 
+    function retailerReturnToWarehouse(uint256 prodId, address distributor, string memory ipfsHash) public roleCheker(Role.Retailer){
+        Product storage product = productLedger[prodId];
+        require(product.producer != address(0), "Product does not exist.");
+        require(product.currentOwner == msg.sender, "Only the current owner can perform return");
+        require(product.currentStatus == ProductStatus.ShippedToRetailer, "Invalid status transition");
+        require(bytes(ipfsHash).length > 0, "IPFS hash cannot be empty");
+
+        ProductStatus previousStatus = product.currentStatus;
+        product.currentStatus = ProductStatus.RetailerReturnedToWarehouse;
+        product.currentOwner = distributor; 
+        product.ipfsHash = ipfsHash;
+
+        emit ProductStatusUpdated(prodId, previousStatus, product.currentStatus, msg.sender, product.currentOwner, ipfsHash);
+    }
+
+    // retailer list the product on shelf
+    function putOnShelf(uint256 prodId, string memory ipfsHash) public roleCheker(Role.Retailer){
+        Product storage product = productLedger[prodId];
+        require(product.producer != address(0), "Product does not exist.");
+        require(product.currentOwner == msg.sender, "Only the current owner can put the product on shelf");
+        require(product.currentStatus == ProductStatus.RetailerQualityCheckPassed, "Invalid status transition");
+        require(bytes(ipfsHash).length > 0, "IPFS hash cannot be empty");
+
+        ProductStatus previousStatus = product.currentStatus;
+        product.currentStatus = ProductStatus.InStore;
+        product.ipfsHash = ipfsHash;
+
+        emit ProductStatusUpdated(prodId, previousStatus, product.currentStatus, msg.sender, product.currentOwner, ipfsHash);
+    }
+
+    function sellToConsumer(uint256 prodId, address consumer, string memory ipfsHash) public roleCheker(Role.Retailer){
+        Product storage product = productLedger[prodId];
+        require(product.producer != address(0), "Product does not exist.");
+        require(product.currentOwner == msg.sender, "Only the current owner can sell the product");
+        require(product.currentStatus == ProductStatus.InStore, "Invalid status transition");
+        require(bytes(ipfsHash).length > 0, "IPFS hash cannot be empty");
+
+        ProductStatus previousStatus = product.currentStatus;
+        product.currentStatus = ProductStatus.Sold;
+        product.currentOwner = consumer; 
+        product.ipfsHash = ipfsHash;
+
+        emit ProductStatusUpdated(prodId, previousStatus, product.currentStatus, msg.sender, product.currentOwner, ipfsHash);
+    }
 
     /************************************************
     * Consumer's Capabilities 
