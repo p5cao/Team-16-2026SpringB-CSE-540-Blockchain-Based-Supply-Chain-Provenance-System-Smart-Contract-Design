@@ -72,7 +72,6 @@ Acting as the immutable backend, this layer is programmed in **Solidity**. To mi
 * Wallet addresses of current and past owners
 * Cryptographic hashes (pointers) to external data
 
-
 **The current smart contract draft focuses mainly on the producer and distributor workflow. At this stage, the contract includes:**
 * Admin role assignment for supply chain participants
 * Producer creation of new product records
@@ -85,44 +84,8 @@ Acting as the immutable backend, this layer is programmed in **Solidity**. To mi
 ### 3. The Off-Chain Layer (Storage & Database)
 To prevent network load, all "heavy" data—such as PDFs, and complex metadata—is stored off-chain using standard databases or decentralized file systems like **IPFS**. The system maintains tamper-proofing by mainting hash of those data in the block chain
 
----
 
-### Current Smart Contract Draft Status
-
-**The current `SupplyChainProvenance.sol` draft in the `blockchain/contracts/` folder has been compiled and tested locally with Hardhat.**
-
-Implemented and tested functions currently include:
-* Contract deployment
-* Admin role initialization
-* Admin role assignment for other participants
-* Producer `createProduct(...)`
-* Producer `markReadyToShip(...)`
-* Distributor `receiveAtWarehouse(...)`
-
-Additional distributor functions have also been drafted in the contract for the next stage of implementation:
-* `passWarehouseQualityCheck(...)`
-* `storeInWarehouse(...)`
-* `shipToRetailer(...)`
-* `receiveReturnedFromRetailer(...)`
-
-The retailer and consumer sections are currently included as draft placeholders to show the intended contract structure for later development.
-
-### Local Test Coverage
-
-A local Hardhat test file has been added for the current draft contract:
-* `test/SupplyChainProvenance.ts`
-
-The current basic test coverage includes:
-1. Contract deploys successfully
-2. Deployer is initialized as admin
-3. Admin can assign producer and distributor roles
-4. Producer can create a product record
-5. Distributor can receive a product after the producer marks it ready to ship
-
-At the current stage, these tests pass locally in Hardhat.
-
-
-### Code Organization
+## Code Organization
 
 1. **On-Chain Layer (`blockchain/`)**  
 	- Solidity smart contracts for supply chain provenance  
@@ -248,6 +211,46 @@ npx hardhat keystore set SEPOLIA_PRIVATE_KEY
 	Open your browser and go to [http://localhost:3000](http://localhost:3000)
 
 ---
+
+
+
+
+## Current Smart Contract Draft Status
+
+**The current `SupplyChainProvenance.sol` draft in the `blockchain/contracts/` folder has been compiled and tested locally with Hardhat.**
+
+Implemented and tested functions currently include:
+* Contract deployment
+* Admin role initialization
+* Admin role assignment for other participants
+* Producer `createProduct(...)`
+* Producer `markReadyToShip(...)`
+* Distributor `receiveAtWarehouse(...)`
+
+Additional distributor functions have also been drafted in the contract for the next stage of implementation:
+* `passWarehouseQualityCheck(...)`
+* `storeInWarehouse(...)`
+* `shipToRetailer(...)`
+* `receiveReturnedFromRetailer(...)`
+
+The retailer and consumer sections are currently included as draft placeholders to show the intended contract structure for later development.
+
+### Local Test Coverage
+
+A local Hardhat test file has been added for the current draft contract:
+* `test/SupplyChainProvenance.ts`
+
+The current basic test coverage includes:
+1. Contract deploys successfully
+2. Deployer is initialized as admin
+3. Admin can assign producer and distributor roles
+4. Producer can create a product record
+5. Distributor can receive a product after the producer marks it ready to ship
+
+At the current stage, these tests pass locally in Hardhat.
+
+---
+
 
 ## Notes
 
