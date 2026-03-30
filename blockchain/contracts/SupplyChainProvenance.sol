@@ -148,15 +148,7 @@ contract SupplyChainProvenance {
      */
     function assignRole(address user, Role role) public adminOnly {
         rolesMapping[user] = role;
-        emit RoleAssigned(user, role);
-    }
-
-    /**
-     * @notice Returns the role of a given address.
-     * @param user Address to query.
-     */
-    function getRole(address user) public view returns (Role) {
-        return rolesMapping[user];
+        emit RoleAssigned(admin, user, role);
     }
 
     /************************************
