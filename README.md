@@ -2,6 +2,7 @@
 
 A hybrid blockchain-based supply chain provenance system, combining on chain smart contracts, an off-chain event backend server to seed the index db, and a modern web frontend with react.js.
 
+At the current project stage, the smart contract draft has been implemented and tested locally in the `blockchain/` module using Hardhat. The current implementation mainly covers admin role assignment, producer-side product registration, and distributor-side warehouse receiving workflow.
 
 ## Architecture Overview
 
@@ -72,6 +73,16 @@ Acting as the immutable backend, this layer is programmed in **Solidity**. To mi
 * Parent Batch IDs (to maintain lineage during shipment splitting)
 * Wallet addresses of current and past owners
 * Cryptographic hashes (pointers) to external data
+
+
+**The current smart contract draft focuses mainly on the producer and distributor workflow. At this stage, the contract includes:**
+* Admin role assignment for supply chain participants
+* Producer creation of new product records
+* Producer status update from `InProduction` to `ReadyToShip`
+* Distributor receiving products at warehouse
+* Distributor warehouse quality check and storage updates
+* Distributor shipment to retailer
+* Draft placeholder interfaces for retailer and consumer operations
 
 ### 3. The Off-Chain Layer (Storage & Database)
 To prevent network load, all "heavy" data—such as PDFs, and complex metadata—is stored off-chain using standard databases or decentralized file systems like **IPFS**. The system maintains tamper-proofing by mainting hash of those data in the block chain
