@@ -6,6 +6,56 @@ A hybrid blockchain-based supply chain provenance system, combining on chain sma
 
 This project develops a blockchain-based supply chain provenance system to improve product traceability across producers, distributors, retailers, regulators, and consumers. The goal is to create a shared and tamper-resistant record of product registration, custody transfer, and status updates, reducing the risk of counterfeiting, fraud, and delayed recalls. The system uses Ethereum smart contracts to store core provenance data on-chain, while larger files and metadata can be stored off-chain with cryptographic references recorded on the blockchain. The prototype is built with Solidity, Hardhat, Sepolia, and a web interface using Ethers.js and MetaMask, with a focus on transparency, auditability, and practical course-scale implementation.
 
+### System Architecture Diagram
+
+```mermaid
+graph TD
+    %% Styling
+    classDef frontend fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px;
+    classDef backend fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
+    classDef offchain fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
+    classDef onchain fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px;
+
+    %% 1. Presentation Layer
+    subgraph Presentation Layer [1. Presentation Layer - User Interfaces]
+        direction LR
+        A[Producers]:::frontend
+        B[Suppliers]:::frontend
+        C[Retailers]:::frontend
+        D[Consumers]:::frontend
+    end
+
+    %% 2. Application Layer
+    subgraph Application Layer [2. Application Layer]
+        E[Application Server / API Gateway]:::backend
+    end
+
+    %% 3. Off-Chain Layer
+    subgraph Off-Chain Layer [3. Off-Chain Storage Layer]
+        direction LR
+        F[(Relational Database\nUser Profiles, Caching, Search)]:::offchain
+        G[IPFS Network\nHeavy Files, Immutable Metadata]:::offchain
+    end
+
+    %% 4. On-Chain Layer
+    subgraph Blockchain Layer [4. On-Chain Layer]
+        H{Ethereum Blockchain\nProvenance Smart Contracts}:::onchain
+    end
+
+    %% Relationships and Data Flow
+    A -->|Registers Product & Uploads Docs| E
+    B -->|Logs Transit & Custody Events| E
+    C -->|Verifies Receipt & Authenticity| E
+    D -->|Scans QR & Reads History| E
+
+    E <-->|Queries & Caches UI Data| F
+    E -->|Uploads Heavy Files| G
+    G -->|Returns Cryptographic Hash CID| E
+
+    E -->|Submits Tx: Product ID + Status + CID| H
+    H -->|Emits State Changes & Verifies Ownership| E
+```
+
 This project implements a three-layer architecture:
 
 ### 1.  Role-Based Access Control and Presentation and Backend (RBAC)
