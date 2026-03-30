@@ -13,7 +13,7 @@ export declare namespace SupplyChainProvenance {
     }
 
   export interface SupplyChainProvenanceInterface extends Interface {
-    getFunction(nameOrSignature: "admin" | "assignRole" | "createProduct" | "getProduct" | "getRole" | "markReadyToShip" | "passWarehouseQualityCheck" | "placeInStore" | "productLedger" | "purchaseProduct" | "receiveAtWarehouse" | "receiveReturnedFromRetailer" | "retailerReceiveProduct" | "returnToWarehouse" | "rolesMapping" | "shipToRetailer" | "storeInWarehouse" | "verifyProduct"): FunctionFragment;
+    getFunction(nameOrSignature: "admin" | "assignRole" | "createProduct" | "getProduct" | "markReadyToShip" | "passWarehouseQualityCheck" | "placeInStore" | "productLedger" | "purchaseProduct" | "receiveAtWarehouse" | "receiveReturnedFromRetailer" | "retailerReceiveProduct" | "returnToWarehouse" | "rolesMapping" | "shipToRetailer" | "storeInWarehouse" | "verifyProduct"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "ProductCreated" | "ProductOwnershipTransferred" | "ProductStatusChanged" | "RoleAssigned"): EventFragment;
 
@@ -21,12 +21,11 @@ export declare namespace SupplyChainProvenance {
 encodeFunctionData(functionFragment: 'assignRole', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'createProduct', values: [BigNumberish, BigNumberish, string, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'getProduct', values: [BigNumberish]): string;
-encodeFunctionData(functionFragment: 'getRole', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'markReadyToShip', values: [BigNumberish, string]): string;
 encodeFunctionData(functionFragment: 'passWarehouseQualityCheck', values: [BigNumberish, string]): string;
 encodeFunctionData(functionFragment: 'placeInStore', values: [BigNumberish, string]): string;
 encodeFunctionData(functionFragment: 'productLedger', values: [BigNumberish]): string;
-encodeFunctionData(functionFragment: 'purchaseProduct', values: [BigNumberish]): string;
+encodeFunctionData(functionFragment: 'purchaseProduct', values: [BigNumberish, string]): string;
 encodeFunctionData(functionFragment: 'receiveAtWarehouse', values: [BigNumberish, string]): string;
 encodeFunctionData(functionFragment: 'receiveReturnedFromRetailer', values: [BigNumberish, string]): string;
 encodeFunctionData(functionFragment: 'retailerReceiveProduct', values: [BigNumberish, string]): string;
@@ -40,7 +39,6 @@ encodeFunctionData(functionFragment: 'verifyProduct', values: [BigNumberish]): s
 decodeFunctionResult(functionFragment: 'assignRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'createProduct', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getProduct', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'markReadyToShip', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'passWarehouseQualityCheck', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'placeInStore', data: BytesLike): Result;
@@ -171,14 +169,6 @@ decodeFunctionResult(functionFragment: 'verifyProduct', data: BytesLike): Result
     
 
     
-    getRole: TypedContractMethod<
-      [user: AddressLike, ],
-      [bigint],
-      'view'
-    >
-    
-
-    
     markReadyToShip: TypedContractMethod<
       [prodId: BigNumberish, ipfsHash: string, ],
       [void],
@@ -212,7 +202,7 @@ decodeFunctionResult(functionFragment: 'verifyProduct', data: BytesLike): Result
 
     
     purchaseProduct: TypedContractMethod<
-      [prodId: BigNumberish, ],
+      [prodId: BigNumberish, ipfsHash: string, ],
       [void],
       'nonpayable'
     >
@@ -305,11 +295,6 @@ getFunction(nameOrSignature: 'getProduct'): TypedContractMethod<
       [SupplyChainProvenance.ProductStructOutput],
       'view'
     >;
-getFunction(nameOrSignature: 'getRole'): TypedContractMethod<
-      [user: AddressLike, ],
-      [bigint],
-      'view'
-    >;
 getFunction(nameOrSignature: 'markReadyToShip'): TypedContractMethod<
       [prodId: BigNumberish, ipfsHash: string, ],
       [void],
@@ -331,7 +316,7 @@ getFunction(nameOrSignature: 'productLedger'): TypedContractMethod<
       'view'
     >;
 getFunction(nameOrSignature: 'purchaseProduct'): TypedContractMethod<
-      [prodId: BigNumberish, ],
+      [prodId: BigNumberish, ipfsHash: string, ],
       [void],
       'nonpayable'
     >;
