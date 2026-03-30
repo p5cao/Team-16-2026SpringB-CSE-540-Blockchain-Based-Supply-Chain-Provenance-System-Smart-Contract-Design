@@ -2,6 +2,7 @@
 
 A hybrid blockchain-based supply chain provenance system, combining on chain smart contracts, an off-chain event backend server to seed the index db, and a modern web frontend with react.js.
 
+At the current project stage, the smart contract draft has been implemented and tested locally in the `blockchain/` module using Hardhat. The current implementation mainly covers admin role assignment, producer-side product registration, and distributor-side warehouse receiving workflow.
 
 ## Architecture Overview
 
@@ -73,10 +74,54 @@ Acting as the immutable backend, this layer is programmed in **Solidity**. To mi
 * Wallet addresses of current and past owners
 * Cryptographic hashes (pointers) to external data
 
+
+**The current smart contract draft focuses mainly on the producer and distributor workflow. At this stage, the contract includes:**
+* Admin role assignment for supply chain participants
+* Producer creation of new product records
+* Producer status update from `InProduction` to `ReadyToShip`
+* Distributor receiving products at warehouse
+* Distributor warehouse quality check and storage updates
+* Distributor shipment to retailer
+* Draft placeholder interfaces for retailer and consumer operations
+
 ### 3. The Off-Chain Layer (Storage & Database)
 To prevent network load, all "heavy" data—such as PDFs, and complex metadata—is stored off-chain using standard databases or decentralized file systems like **IPFS**. The system maintains tamper-proofing by mainting hash of those data in the block chain
 
 ---
+
+### Current Smart Contract Draft Status
+
+The current `SupplyChainProvenance.sol` draft in the `blockchain/contracts/` folder has been compiled and tested locally with Hardhat.
+
+Implemented and tested functions currently include:
+* Contract deployment
+* Admin role initialization
+* Admin role assignment for other participants
+* Producer `createProduct(...)`
+* Producer `markReadyToShip(...)`
+* Distributor `receiveAtWarehouse(...)`
+
+Additional distributor functions have also been drafted in the contract for the next stage of implementation:
+* `passWarehouseQualityCheck(...)`
+* `storeInWarehouse(...)`
+* `shipToRetailer(...)`
+* `receiveReturnedFromRetailer(...)`
+
+The retailer and consumer sections are currently included as draft placeholders to show the intended contract structure for later development.
+
+### Local Test Coverage
+
+A local Hardhat test file has been added for the current draft contract:
+* `test/SupplyChainProvenance.ts`
+
+The current basic test coverage includes:
+1. Contract deploys successfully
+2. Deployer is initialized as admin
+3. Admin can assign producer and distributor roles
+4. Producer can create a product record
+5. Distributor can receive a product after the producer marks it ready to ship
+
+At the current stage, these tests pass locally in Hardhat.
 
 
 ### Code Organization
@@ -85,6 +130,8 @@ To prevent network load, all "heavy" data—such as PDFs, and complex metadata�
 	- Solidity smart contracts for supply chain provenance  
 	- Hardhat for development, testing, and deployment
     - Mocha for unit testing
+    - Current contract draft: `contracts/SupplyChainProvenance.sol`
+    - Current local tests: `test/SupplyChainProvenance.ts`
 
 2. **Off-Chain Backend (`back-end/`)**  
 	- Node.js service listens to blockchain events (e.g., `ProductRegistered`)  
@@ -147,6 +194,13 @@ v24.14.1
     ```
     npm run test
     ```
+
+	To run the current draft contract test file only:
+    ```sh
+    npm run test test/SupplyChainProvenance.ts
+    ```
+**(Deployment work still in progress)**
+
 6. **Deploy smart contract local** 
     ```
     npm run deploy-local
@@ -210,6 +264,9 @@ v24.14.1
 
 - Update `.env` files as needed for blockchain RPC URLs and database credentials.
 - For production/testnet deployment, update network configs and use real endpoints.
+
+- The current contract draft is intentionally scoped to the producer and distributor workflow for this submission stage.
+- The current local Hardhat test results confirm that deployment, role assignment, product creation, and warehouse receiving workflow are functioning as expected.
 
 ---
 
