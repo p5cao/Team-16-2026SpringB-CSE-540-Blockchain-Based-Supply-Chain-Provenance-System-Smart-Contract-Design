@@ -1,61 +1,26 @@
-# Team_16-CSE540-Supply_Chain_Provenance
+# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
 
-A hybrid blockchain-based supply chain provenance system, combining on chain smart contracts, an off-chain event backend server to seed the index db, and a modern web frontend with react.js.
+This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
 
 At the current project stage, the smart contract draft has been implemented and tested locally in the `blockchain/` module using Hardhat. The current implementation mainly covers admin role assignment, producer-side product registration, and distributor-side warehouse receiving workflow.
 
-## Architecture Overview
+## Project Overview
 
+This example project includes:
 
+- A simple Hardhat configuration file.
+- Foundry-compatible Solidity unit tests.
+- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
+- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
 
-### System Architecture Diagram
+## Usage
 
-```mermaid
-graph TD
-    %% Styling
-    classDef frontend fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px;
-    classDef backend fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
-    classDef offchain fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
-    classDef onchain fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px;
+### Running Tests
 
-    %% 1. Presentation Layer
-    subgraph Presentation Layer [1. Presentation Layer - User Interfaces]
-        direction LR
-        A[Producers]:::frontend
-        B[Suppliers]:::frontend
-        C[Retailers]:::frontend
-        D[Consumers]:::frontend
-    end
+To run all the tests in the project, execute the following command:
 
-    %% 2. Application Layer
-    subgraph Application Layer [2. Application Layer]
-        E[Application Server / API Gateway]:::backend
-    end
-
-    %% 3. Off-Chain Layer
-    subgraph Off-Chain Layer [3. Off-Chain Storage Layer]
-        direction LR
-        F[(Relational Database\nUser Profiles, Caching, Search)]:::offchain
-        G[IPFS Network\nHeavy Files, Immutable Metadata]:::offchain
-    end
-
-    %% 4. On-Chain Layer
-    subgraph Blockchain Layer [4. On-Chain Layer]
-        H{Ethereum Blockchain\nProvenance Smart Contracts}:::onchain
-    end
-
-    %% Relationships and Data Flow
-    A -->|Registers Product & Uploads Docs| E
-    B -->|Logs Transit & Custody Events| E
-    C -->|Verifies Receipt & Authenticity| E
-    D -->|Scans QR & Reads History| E
-
-    E <-->|Queries & Caches UI Data| F
-    E -->|Uploads Heavy Files| G
-    G -->|Returns Cryptographic Hash CID| E
-
-    E -->|Submits Tx: Product ID + Status + CID| H
-    H -->|Emits State Changes & Verifies Ownership| E
+```shell
+npx hardhat test
 ```
 
 This project implements a three-layer architecture:
@@ -167,24 +132,16 @@ Now using node v24.14.1 (npm v11.11.0)
 $ node -v
 v24.14.1
 
+```shell
+npx hardhat test solidity
+npx hardhat test nodejs
 ```
 
+### Make a deployment to Sepolia
 
-### Block Chain Deployment
-1. **Clone the repository**
-	```sh
-	git clone <repo-url>
-	cd Team-16-2026SpringB-CSE-540-Blockchain-Based-Supply-Chain-Provenance-System-Smart-Contract-Design
-	```
+This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
 
-2. **Change the diretory to blockchain**
-    ```sh
-    cd blockchain
-    ```
-3. **Install dependencies**
-	```sh
-	npm install
-	```
+To run the deployment to a local chain:
 
 4. **Start the local blockchain**
 	```sh
@@ -206,12 +163,15 @@ v24.14.1
     npm run deploy-local
     ```
 
+To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
 
-7. **Deploy smart contracts to Sepoli**
+You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
 
-    ```sh
-    # Create .env from the template
+To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
 
+```shell
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```
 
     cp .env.example .env
 
@@ -270,3 +230,6 @@ v24.14.1
 
 ---
 
+```shell
+npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+```
