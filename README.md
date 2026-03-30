@@ -1,25 +1,10 @@
-# Team_16-CSE540-Supply_Chain_Provenance
+# CSE540 Team 16 Project Blockchain Based Supply Chain Provenance System Smart Contract Design
 
 A hybrid blockchain-based supply chain provenance system, combining on chain smart contracts, an off-chain event backend server to seed the index db, and a modern web frontend with react.js.
 
 ## Project Overview
 
-This example project includes:
-
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
-
-## Usage
-
-### Running Tests
-
-To run all the tests in the project, execute the following command:
-
-```shell
-npx hardhat test
-```
+This project develops a blockchain-based supply chain provenance system to improve product traceability across producers, distributors, retailers, regulators, and consumers. The goal is to create a shared and tamper-resistant record of product registration, custody transfer, and status updates, reducing the risk of counterfeiting, fraud, and delayed recalls. The system uses Ethereum smart contracts to store core provenance data on-chain, while larger files and metadata can be stored off-chain with cryptographic references recorded on the blockchain. The prototype is built with Solidity, Hardhat, Sepolia, and a web interface using Ethers.js and MetaMask, with a focus on transparency, auditability, and practical course-scale implementation.
 
 This project implements a three-layer architecture:
 
@@ -54,7 +39,7 @@ To prevent network load, all "heavy" dataâ€”such as PDFs, and complex metadataâ€
 
 ### Current Smart Contract Draft Status
 
-The current `SupplyChainProvenance.sol` draft in the `blockchain/contracts/` folder has been compiled and tested locally with Hardhat.
+**The current `SupplyChainProvenance.sol` draft in the `blockchain/contracts/` folder has been compiled and tested locally with Hardhat.**
 
 Implemented and tested functions currently include:
 * Contract deployment
