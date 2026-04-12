@@ -10,7 +10,7 @@
     "test": "hardhat test",
     "compile": "hardhat compile",
     "deploy:sepolia": "hardhat ignition deploy ./ignition/modules/SupplyChainProvenance.js --network sepolia",
-    "deploy:local": "hardhat ignition deploy ./ignition/modules/SupplyChainProvenance.js --network localhost"
+    "deploy:local": "hardhat ignition deploy ./ignition/modules/SupplyChainProvenance.js --network localhost && node scripts/sync-local.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^3.0.4",
