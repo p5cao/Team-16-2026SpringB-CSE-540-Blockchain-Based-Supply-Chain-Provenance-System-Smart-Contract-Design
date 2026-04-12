@@ -1,11 +1,10 @@
-# Team_16-CSE540-Supply_Chain_Provenance
+# CSE540 Team 16 Project Blockchain Based Supply Chain Provenance System Smart Contract Design
 
 A hybrid blockchain-based supply chain provenance system, combining on chain smart contracts, an off-chain event backend server to seed the index db, and a modern web frontend with react.js.
 
+## Project Overview
 
-## Architecture Overview
-
-
+This project develops a blockchain-based supply chain provenance system to improve product traceability across producers, distributors, retailers, regulators, and consumers. The goal is to create a shared and tamper-resistant record of product registration, custody transfer, and status updates, reducing the risk of counterfeiting, fraud, and delayed recalls. The system uses Ethereum smart contracts to store core provenance data on-chain, while larger files and metadata can be stored off-chain with cryptographic references recorded on the blockchain. The prototype is built with Solidity, Hardhat, Sepolia, and a web interface using Ethers.js and MetaMask, with a focus on transparency, auditability, and practical course-scale implementation.
 
 ### System Architecture Diagram
 
@@ -73,18 +72,27 @@ Acting as the immutable backend, this layer is programmed in **Solidity**. To mi
 * Wallet addresses of current and past owners
 * Cryptographic hashes (pointers) to external data
 
+**The current smart contract draft focuses mainly on the producer and distributor workflow. At this stage, the contract includes:**
+* Admin role assignment for supply chain participants
+* Producer creation of new product records
+* Producer status update from `InProduction` to `ReadyToShip`
+* Distributor receiving products at warehouse
+* Distributor warehouse quality check and storage updates
+* Distributor shipment to retailer
+* Draft placeholder interfaces for retailer and consumer operations
+
 ### 3. The Off-Chain Layer (Storage & Database)
 To prevent network load, all "heavy" data—such as PDFs, and complex metadata—is stored off-chain using standard databases or decentralized file systems like **IPFS**. The system maintains tamper-proofing by mainting hash of those data in the block chain
 
----
 
-
-### Code Organization
+## Code Organization
 
 1. **On-Chain Layer (`blockchain/`)**  
 	- Solidity smart contracts for supply chain provenance  
 	- Hardhat for development, testing, and deployment
     - Mocha for unit testing
+    - Current contract draft: `contracts/SupplyChainProvenance.sol`
+    - Current local tests: `test/SupplyChainProvenance.ts`
 
 2. **Off-Chain Backend (`back-end/`)**  
 	- Node.js service listens to blockchain events (e.g., `ProductRegistered`)  
@@ -112,32 +120,20 @@ To prevent network load, all "heavy" data—such as PDFs, and complex metadata�
 1. Install NVM as mentioned: https://github.com/nvm-sh/nvm
 2. Install node veresion 24
 ```
-$ nvm install v24.14.10
+$ nvm install 24
 
 $ nvm use 24
-Now using node v24.14.10
+Now using node v24.14.1 (npm v11.11.0)
 
 $ node -v
-v24.14.10
-
-```
+v24.14.1
 
 
-### Block Chain Deployment
-1. **Clone the repository**
-	```sh
-	git clone <repo-url>
-	cd TeamName_CSE540_FinalProject
-	```
+### Make a deployment to Sepolia
 
-2. **Change the diretory to blockchain**
-    ```sh
-    cd blockchain
-    ```
-3. **Install dependencies**
-	```sh
-	npm install
-	```
+This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+
+To run the deployment to a local chain:
 
 4. **Start the local blockchain**
 	```sh
@@ -147,17 +143,27 @@ v24.14.10
     ```
     npm run test
     ```
+
+	To run the current draft contract test file only:
+    ```sh
+    npm run test test/SupplyChainProvenance.ts
+    ```
+**(Deployment work still in progress)**
+
 6. **Deploy smart contract local** 
     ```
     npm run deploy-local
     ```
 
+To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
 
-7. **Deploy smart contracts to Sepoli**
+You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
 
-    ```sh
-    # Create .env from the template
+To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
 
+```shell
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```
 
     cp .env.example .env
 
@@ -206,10 +212,53 @@ v24.14.10
 
 ---
 
+
+
+
+## Current Smart Contract Draft Status
+
+**The current `SupplyChainProvenance.sol` draft in the `blockchain/contracts/` folder has been compiled and tested locally with Hardhat.**
+
+Implemented and tested functions currently include:
+* Contract deployment
+* Admin role initialization
+* Admin role assignment for other participants
+* Producer `createProduct(...)`
+* Producer `markReadyToShip(...)`
+* Distributor `receiveAtWarehouse(...)`
+
+Additional distributor functions have also been drafted in the contract for the next stage of implementation:
+* `passWarehouseQualityCheck(...)`
+* `storeInWarehouse(...)`
+* `shipToRetailer(...)`
+* `receiveReturnedFromRetailer(...)`
+
+The retailer and consumer sections are currently included as draft placeholders to show the intended contract structure for later development.
+
+### Local Test Coverage
+
+A local Hardhat test file has been added for the current draft contract:
+* `test/SupplyChainProvenance.ts`
+
+The current basic test coverage includes:
+1. Contract deploys successfully
+2. Deployer is initialized as admin
+3. Admin can assign producer and distributor roles
+4. Producer can create a product record
+5. Distributor can receive a product after the producer marks it ready to ship
+
+At the current stage, these tests pass locally in Hardhat.
+
+---
+
+
 ## Notes
 
 - Update `.env` files as needed for blockchain RPC URLs and database credentials.
 - For production/testnet deployment, update network configs and use real endpoints.
+
+- The current contract draft is intentionally scoped to the producer and distributor workflow for this submission stage.
+- The current local Hardhat test results confirm that deployment, role assignment, product creation, and warehouse receiving workflow are functioning as expected.
 
 ---
 
