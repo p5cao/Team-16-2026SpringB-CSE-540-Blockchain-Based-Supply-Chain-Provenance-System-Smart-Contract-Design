@@ -1,55 +1,47 @@
 #!/usr/bin/env bash
-# start-local.sh
-# Starts a local Hardhat node, deploys the contract, syncs the address to
-# front-end/.env.local, and launches the React dev server.
-#
-# Usage: ./start-local.sh
-#
-# Requirements: Node.js + npm installed, dependencies already installed in
-#   ./blockchain and ./front-end (run `npm install` in each once).
+# starts hardhat locally, deploys the contract, and runs the react frontend
+# run ./setup-local.sh first if you haven't installed dependencies yet
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
-BLOCKCHAIN="$ROOT/blockchain"
-FRONTEND="$ROOT/front-end"
+root="$(cd "$(dirname "$0")" && pwd)"
+blockchain_dir="$root/blockchain"
+frontend_dir="$root/front-end"
 
-# ── 1. Kill any existing process on port 8545 ────────────────────────────────
-echo "→ Checking port 8545..."
+# kill anything already running on 8545 so we get a clean node
 if lsof -ti tcp:8545 &>/dev/null; then
-  echo "  Port 8545 in use — killing existing process..."
+  echo "port 8545 is in use, stopping it first..."
   kill "$(lsof -ti tcp:8545)" 2>/dev/null || true
   sleep 1
 fi
 
-# ── 2. Start Hardhat node in the background ───────────────────────────────────
-echo "→ Starting Hardhat local node..."
-cd "$BLOCKCHAIN"
-npx hardhat node > "$ROOT/logs/hardhat-node.log" 2>&1 &
-HARDHAT_PID=$!
-echo "  Hardhat node PID: $HARDHAT_PID"
+# start the hardhat node in the background, log output to logs/
+echo "starting hardhat node..."
+cd "$blockchain_dir"
+npx hardhat node > "$root/logs/hardhat-node.log" 2>&1 &
+node_pid=$!
 
-# Wait for node to be ready
-echo "  Waiting for node to be ready..."
+# wait up to 20 seconds for the node to come up
+echo "waiting for node on port 8545..."
 for i in $(seq 1 20); do
   if curl -s -X POST http://127.0.0.1:8545 \
       -H "Content-Type: application/json" \
       -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
       &>/dev/null; then
-    echo "  Node is ready."
+    echo "node is up"
     break
   fi
   sleep 1
 done
 
-# ── 3. Deploy contract and sync address to front-end ─────────────────────────
-echo "→ Deploying contract to localhost..."
+# deploy the contract and write the address to front-end/.env.local
+echo "deploying contract..."
 npm run deploy:local
 
-# ── 4. Start React front-end ─────────────────────────────────────────────────
-echo "→ Starting React front-end..."
-cd "$FRONTEND"
-npm start
+# stop the node when the script exits (ctrl+c)
+trap 'echo "stopping hardhat node..."; kill $node_pid 2>/dev/null || true' EXIT
 
-# ── Cleanup on exit ──────────────────────────────────────────────────────────
-trap 'echo "→ Stopping Hardhat node..."; kill $HARDHAT_PID 2>/dev/null || true' EXIT
+# start the frontend
+echo "starting frontend..."
+cd "$frontend_dir"
+npm start
