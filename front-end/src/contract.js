@@ -1,8 +1,11 @@
 // This is the web3 contract setup for the supply chain project
 import web3 from "./web3";
 
-// Contract address (hardcoded for now)
-export const CONTRACT_ADDRESS = "0x685E3d760E481a684e0607b4d1792FB3a5d4DBCD";
+// Contract address — set REACT_APP_CONTRACT_ADDRESS in .env.local for local dev
+// or in .env for production (Sepolia). Falls back to the last known Sepolia address.
+export const CONTRACT_ADDRESS =
+  process.env.REACT_APP_CONTRACT_ADDRESS ||
+  "0x685E3d760E481a684e0607b4d1792FB3a5d4DBCD";
 
 // ABI for the contract, copy-pasted from compilation output
 export const CONTRACT_ABI = [
