@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "strict": true,
+    "types": ["mocha"],
     "resolveJsonModule": true,
     "outDir": "dist"
   },
