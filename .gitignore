@@ -18,3 +18,12 @@
 
 # Hardhat coverage reports
 /coverage
+
+.DS_Store
+
+**/node_modules
+**/.env
+
+# Local dev logs
+/logs/*
+!/logs/.gitkeep

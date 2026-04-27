@@ -2,6 +2,7 @@ import { expect } from "chai";
 import hre from "hardhat";
 
 const { ethers, networkHelpers } = await hre.network.connect();
+const { loadFixture } = networkHelpers;
 
 describe("SupplyChainProvenance", function () {
   const Role = {
@@ -31,43 +32,23 @@ describe("SupplyChainProvenance", function () {
   };
 
   async function deployFixture() {
-    const [admin, producer, distributor, retailer, consumer] =
-      await ethers.getSigners();
-
-    const contract = await ethers.deployContract("SupplyChainProvenance");
+    const [admin, producer, distributor, retailer, consumer] = await ethers.getSigners();
+    const contract: any = await ethers.deployContract("SupplyChainProvenance");
     await contract.waitForDeployment();
-
-    return {
-      contract,
-      admin,
-      producer,
-      distributor,
-      retailer,
-      consumer,
-    };
+    return { contract, admin, producer, distributor, retailer, consumer };
   }
 
   async function deployWithRolesFixture() {
-    const { contract, admin, producer, distributor, retailer, consumer } =
-      await networkHelpers.loadFixture(deployFixture);
-
+    const { contract, admin, producer, distributor, retailer, consumer } = await loadFixture(deployFixture);
     await contract.connect(admin).assignRole(await producer.getAddress(), Role.Producer);
     await contract.connect(admin).assignRole(await distributor.getAddress(), Role.Distributor);
     await contract.connect(admin).assignRole(await retailer.getAddress(), Role.Retailer);
     await contract.connect(admin).assignRole(await consumer.getAddress(), Role.Consumer);
-
-    return {
-      contract,
-      admin,
-      producer,
-      distributor,
-      retailer,
-      consumer,
-    };
+    return { contract, admin, producer, distributor, retailer, consumer };
   }
 
   it("should deploy successfully and set deployer as admin", async function () {
-    const { contract, admin } = await networkHelpers.loadFixture(deployFixture);
+    const { contract, admin } = await loadFixture(deployFixture);
 
     expect(await contract.admin()).to.equal(await admin.getAddress());
     expect(await contract.rolesMapping(await admin.getAddress())).to.equal(Role.Admin);
@@ -75,7 +56,7 @@ describe("SupplyChainProvenance", function () {
 
   it("should allow admin to assign roles", async function () {
     const { contract, admin, producer, distributor } =
-      await networkHelpers.loadFixture(deployFixture);
+      await loadFixture(deployFixture);
 
     await contract.connect(admin).assignRole(await producer.getAddress(), Role.Producer);
     await contract.connect(admin).assignRole(await distributor.getAddress(), Role.Distributor);
@@ -86,7 +67,7 @@ describe("SupplyChainProvenance", function () {
 
   it("should allow producer to create a product", async function () {
     const { contract, producer } =
-      await networkHelpers.loadFixture(deployWithRolesFixture);
+      await loadFixture(deployWithRolesFixture);
 
     await contract
       .connect(producer)
@@ -98,13 +79,16 @@ describe("SupplyChainProvenance", function () {
     expect(product.producer).to.equal(await producer.getAddress());
     expect(product.producerBatchId).to.equal(1001n);
     expect(product.ipfsHash).to.equal("QmProducerBatch001");
+    expect(product.expirationDate).to.equal(1893456000n);
+    expect(product.currentBatchId).to.equal(1001n);
     expect(product.currentStatus).to.equal(ProductStatus.InProduction);
     expect(product.currentOwner).to.equal(await producer.getAddress());
+    expect(product.parentBatchId).to.equal(0n);
   });
 
   it("should allow distributor to receive product at warehouse after producer marks it ready", async function () {
     const { contract, producer, distributor } =
-      await networkHelpers.loadFixture(deployWithRolesFixture);
+      await loadFixture(deployWithRolesFixture);
 
     await contract
       .connect(producer)
@@ -129,31 +113,22 @@ describe("SupplyChainProvenance", function () {
    * Full chain: producer → distributor warehouse → retailer → in-store → consumer purchase.
    */
   async function productInStoreFixture() {
-    const ctx = await networkHelpers.loadFixture(deployWithRolesFixture);
+    const ctx = await loadFixture(deployWithRolesFixture);
     const { contract, producer, distributor, retailer, consumer } = ctx;
-
     const prodId = 42n;
-
-    await contract
-      .connect(producer)
-      .createProduct(prodId, 7001, "QmProducerBatch001", 1893456000);
+    await contract.connect(producer).createProduct(prodId, 7001, "QmProducerBatch001", 1893456000);
     await contract.connect(producer).markReadyToShip(prodId, "QmReady");
-
     await contract.connect(distributor).receiveAtWarehouse(prodId, "QmRecv");
     await contract.connect(distributor).passWarehouseQualityCheck(prodId, "QmWHQC");
     await contract.connect(distributor).storeInWarehouse(prodId, "QmStock");
-    await contract
-      .connect(distributor)
-      .shipToRetailer(prodId, await retailer.getAddress(), "QmShip");
-
+    await contract.connect(distributor).shipToRetailer(prodId, await retailer.getAddress(), "QmShip");
     await contract.connect(retailer).retailerReceiveProduct(prodId, "QmRetailRecv");
     await contract.connect(retailer).placeInStore(prodId, "QmInStore");
-
     return { ...ctx, prodId };
   }
 
   it("should allow consumer to verify product (same as getProduct)", async function () {
-    const { contract, producer } = await networkHelpers.loadFixture(deployWithRolesFixture);
+    const { contract, producer } = await loadFixture(deployWithRolesFixture);
 
     await contract
       .connect(producer)
@@ -166,7 +141,7 @@ describe("SupplyChainProvenance", function () {
   });
 
   it("should allow consumer to purchase after product is in store", async function () {
-    const { contract, retailer, consumer, prodId } = await networkHelpers.loadFixture(
+    const { contract, retailer, consumer, prodId } = await loadFixture(
       productInStoreFixture
     );
 
@@ -180,7 +155,7 @@ describe("SupplyChainProvenance", function () {
   });
 
   it("should reject purchase if caller is not Consumer", async function () {
-    const { contract, producer, prodId } = await networkHelpers.loadFixture(productInStoreFixture);
+    const { contract, producer, prodId } = await loadFixture(productInStoreFixture);
 
     await expect(
       contract.connect(producer).purchaseProduct(prodId, "QmX")
@@ -188,7 +163,7 @@ describe("SupplyChainProvenance", function () {
   });
 
   it("should reject purchase if product is not in store", async function () {
-    const { contract, consumer, producer } = await networkHelpers.loadFixture(deployWithRolesFixture);
+    const { contract, consumer, producer } = await loadFixture(deployWithRolesFixture);
 
     await contract
       .connect(producer)

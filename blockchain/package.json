@@ -9,11 +9,14 @@
   "scripts": {
     "test": "hardhat test",
     "compile": "hardhat compile",
-    "deploy": "hardhat ignition deploy ./ignition/modules/SupplyChainProvenance.js --network sepolia"
+    "deploy:sepolia": "hardhat ignition deploy ./ignition/modules/SupplyChainProvenance.js --network sepolia",
+    "deploy:local": "hardhat ignition deploy ./ignition/modules/SupplyChainProvenance.js --network localhost && node scripts/sync-local.js"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.4",
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.3",
+    "@types/mocha": "^10.0.10",
     "dotenv": "^17.3.1",
-    "hardhat": "^3.2.0"
+    "hardhat": "^3.0.0"
   }
 }
