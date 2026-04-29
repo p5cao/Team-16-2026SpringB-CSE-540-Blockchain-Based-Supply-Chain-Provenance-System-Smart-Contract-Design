@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import contract, { switchToSepolia, PRODUCT_STATUSES } from '../contract';
+import contract, { readContract, switchToSepolia, PRODUCT_STATUSES } from '../contract';
+import { uploadToIPFS } from '../utils/ipfs';
 import { WalletNotConnected, AccessDenied, alertClass } from './TabHelpers';
 
 // Shows product details after a lookup
@@ -77,47 +78,70 @@ function ProducerTab(props) {
 
   const isProducer = role === 1;
 
-  const [createForm, setCreateForm] = useState({ prodId: '', ipfsHash: '' });
-  const [produceForm, setProduceForm] = useState({ prodId: '', ipfsHash: '' });
+  // Registration form: captures metadata fields before IPFS upload
+  const [regForm, setRegForm] = useState({ prodId: '', name: '', origin: '', certUrl: '' });
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Ship to distributor form
+  const [shipForm, setShipForm] = useState({ prodId: '', distributor: '' });
+
   const [lookupId, setLookupId] = useState('');
   const [lookupResult, setLookupResult] = useState(null);
   const [lookupError, setLookupError] = useState('');
   const [txState, setTxState] = useState({ type: null, status: null, message: '' });
 
-  // Helper to reduce repetition when setting tx state
   function setTx(type, status, message) {
     setTxState({ type: type, status: status, message: message });
   }
 
-  // Create a new product on-chain
-  async function handleCreateProduct(e) {
+  // --- WORKFLOW 1: Register Product (IPFS upload → blockchain anchor) ---
+  async function handleRegister(e) {
     e.preventDefault();
-    setTx('create', 'pending', 'Waiting for transaction confirmation...');
+    setIsRegistering(true);
+    setTx('register', 'pending', 'Uploading metadata to IPFS...');
     try {
+      // Step 1: Package metadata and upload to Pinata/IPFS
+      const metadata = {
+        id: regForm.prodId,
+        name: regForm.name,
+        producer_wallet: account,
+        certificate: regForm.certUrl,
+        attributes: {
+          origin: regForm.origin,
+          registered_at: new Date().toISOString(),
+        },
+      };
+      const cid = await uploadToIPFS(metadata);
+
+      // Step 2: Anchor the CID to the blockchain
+      setTx('register', 'pending', 'Waiting for MetaMask confirmation...');
       await switchToSepolia();
       await contract.methods
-        .createProduct(createForm.prodId, createForm.ipfsHash)
+        .createProduct(regForm.prodId, regForm.prodId, cid, 0)
         .send({ from: account, gas: '300000' });
-      setTx('create', 'success', 'Product #' + createForm.prodId + ' registered on-chain.');
-      setCreateForm({ prodId: '', ipfsHash: '' });
+
+      setTx('register', 'success', `Batch #${regForm.prodId} registered. IPFS CID: ${cid}`);
+      setRegForm({ prodId: '', name: '', origin: '', certUrl: '' });
     } catch (err) {
-      setTx('create', 'error', err.message || 'Transaction failed.');
+      setTx('register', 'error', err.message || 'Registration failed.');
+    } finally {
+      setIsRegistering(false);
     }
   }
 
-  // Mark a product ready to ship
-  async function handleProduce(e) {
+  // --- WORKFLOW 2: Ship Product to Distributor ---
+  async function handleShipToDistributor(e) {
     e.preventDefault();
-    setTx('produce', 'pending', 'Waiting for transaction confirmation...');
+    setTx('ship', 'pending', 'Waiting for MetaMask confirmation...');
     try {
       await switchToSepolia();
       await contract.methods
-        .produce(produceForm.prodId, produceForm.ipfsHash)
+        .shipToDistributor(shipForm.prodId, shipForm.distributor)
         .send({ from: account, gas: '300000' });
-      setTx('produce', 'success', 'Product #' + produceForm.prodId + ' marked as Ready to Ship.');
-      setProduceForm({ prodId: '', ipfsHash: '' });
+      setTx('ship', 'success', `Batch #${shipForm.prodId} custody transferred to ${shipForm.distributor}.`);
+      setShipForm({ prodId: '', distributor: '' });
     } catch (err) {
-      setTx('produce', 'error', err.message || 'Transaction failed.');
+      setTx('ship', 'error', err.message || 'Shipment failed. Is the address an authorized distributor?');
     }
   }
 
@@ -127,16 +151,19 @@ function ProducerTab(props) {
     setLookupResult(null);
     setLookupError('');
     try {
-      const result = await contract.methods.productLedger(lookupId).call();
-      const noProduct = result.prodId && result.prodId.toString() === '0'
-        && result.producer === '0x0000000000000000000000000000000000000000';
-      if (noProduct) {
-        setLookupError('No product found with this ID.');
-      } else {
-        setLookupResult(result);
-      }
+      // getProduct reverts with "Product does not exist" for unknown IDs,
+      // giving a clear error rather than a silent zero-struct from productLedger.
+      const result = await readContract.methods.getProduct(lookupId).call();
+      console.log('[Lookup] raw result for ID', lookupId, ':', result);
+      setLookupResult(result);
     } catch (err) {
-      setLookupError('Failed to fetch product. Check the ID and try again.');
+      console.error('[Lookup] error:', err);
+      const msg = err.message || '';
+      if (msg.includes('Product does not exist')) {
+        setLookupError('No product found with ID ' + lookupId + '. Make sure the batch was registered on Sepolia.');
+      } else {
+        setLookupError('Lookup failed: ' + msg);
+      }
     }
   }
 
@@ -148,19 +175,9 @@ function ProducerTab(props) {
     return <AccessDenied icon="🏭" roleName="Producer" />;
   }
 
-  // Pre-build the tx alerts so JSX stays clean
-  let createAlert = null;
-  if (txState.type === 'create' && txState.message) {
-    createAlert = (
-      <div className={'alert ' + alertClass(txState.status) + ' mt-2 py-2 small'}>
-        {txState.message}
-      </div>
-    );
-  }
-
-  let produceAlert = null;
-  if (txState.type === 'produce' && txState.message) {
-    produceAlert = (
+  function txAlert(type) {
+    if (txState.type !== type || !txState.message) return null;
+    return (
       <div className={'alert ' + alertClass(txState.status) + ' mt-2 py-2 small'}>
         {txState.message}
       </div>
@@ -169,91 +186,118 @@ function ProducerTab(props) {
 
   return (
     <div>
-      <h4>🏭 Producer Dashboard</h4>
-      <p className="text-muted">Register new product batches and manage their initial lifecycle stages.</p>
+      <h4>🏭 Producer Control Panel</h4>
+      <p className="text-muted">Create the digital twin of a physical batch and manage custody transfer to distributors.</p>
 
       <div className="row g-4 mt-1">
-        {/* Create Product form */}
+        {/* WORKFLOW 1: Register / Mint Digital Twin */}
         <div className="col-md-6">
-          <div className="card">
-            <div className="card-header">➕ Create Product</div>
+          <div className="card h-100">
+            <div className="card-header">➕ Register New Batch</div>
             <div className="card-body">
-              <p className="card-text text-muted small">Register a new product batch in <em>In Production</em> status.</p>
-              <form onSubmit={handleCreateProduct}>
+              <p className="card-text text-muted small">
+                Uploads origin metadata to IPFS and anchors the CID to Ethereum, creating the product's provenance trail.
+              </p>
+              <form onSubmit={handleRegister}>
                 <div className="mb-3">
-                  <label className="form-label">Product ID</label>
+                  <label className="form-label">Batch ID</label>
                   <input
                     className="form-control"
                     type="number"
                     placeholder="e.g. 1001"
-                    value={createForm.prodId}
-                    onChange={function(e) { setCreateForm({ prodId: e.target.value, ipfsHash: createForm.ipfsHash }); }}
+                    value={regForm.prodId}
+                    onChange={function(e) { setRegForm({ ...regForm, prodId: e.target.value }); }}
                     required
                     min="1"
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">IPFS Hash</label>
+                  <label className="form-label">Product Name</label>
                   <input
                     className="form-control"
                     type="text"
-                    placeholder="QmXxxx..."
-                    value={createForm.ipfsHash}
-                    onChange={function(e) { setCreateForm({ prodId: createForm.prodId, ipfsHash: e.target.value }); }}
+                    placeholder="e.g. Organic Coffee Beans"
+                    value={regForm.name}
+                    onChange={function(e) { setRegForm({ ...regForm, name: e.target.value }); }}
+                    required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Farm / Origin Location</label>
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="e.g. Huila, Colombia"
+                    value={regForm.origin}
+                    onChange={function(e) { setRegForm({ ...regForm, origin: e.target.value }); }}
+                    required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Certificate / Document URL</label>
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="https://... (PDF or image link)"
+                    value={regForm.certUrl}
+                    onChange={function(e) { setRegForm({ ...regForm, certUrl: e.target.value }); }}
                     required
                   />
                 </div>
                 <button
                   className="btn btn-primary"
                   type="submit"
-                  disabled={txState.type === 'create' && txState.status === 'pending'}
+                  disabled={isRegistering}
                 >
-                  {txState.type === 'create' && txState.status === 'pending' ? 'Processing...' : 'Register Product'}
+                  {isRegistering ? 'Uploading to IPFS & Blockchain...' : 'Mint Digital Twin'}
                 </button>
-                {createAlert}
+                {txAlert('register')}
               </form>
             </div>
           </div>
         </div>
 
-        {/* Mark Ready to Ship form */}
+        {/* WORKFLOW 2: Transfer Custody to Distributor */}
         <div className="col-md-6">
-          <div className="card">
-            <div className="card-header">🚚 Mark Ready to Ship</div>
+          <div className="card h-100">
+            <div className="card-header">🚚 Transfer Custody to Distributor</div>
             <div className="card-body">
-              <p className="card-text text-muted small">Transition a product batch to <em>Ready to Ship</em> status.</p>
-              <form onSubmit={handleProduce}>
+              <p className="card-text text-muted small">
+                Ships a registered batch to an authorized distributor in a single on-chain transaction.
+                The product must be in <em>In Production</em> or <em>Ready to Ship</em> status.
+              </p>
+              <form onSubmit={handleShipToDistributor}>
                 <div className="mb-3">
-                  <label className="form-label">Product ID</label>
+                  <label className="form-label">Batch ID</label>
                   <input
                     className="form-control"
                     type="number"
                     placeholder="e.g. 1001"
-                    value={produceForm.prodId}
-                    onChange={function(e) { setProduceForm({ prodId: e.target.value, ipfsHash: produceForm.ipfsHash }); }}
+                    value={shipForm.prodId}
+                    onChange={function(e) { setShipForm({ ...shipForm, prodId: e.target.value }); }}
                     required
                     min="1"
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Updated IPFS Hash</label>
+                  <label className="form-label">Distributor Wallet Address</label>
                   <input
                     className="form-control"
                     type="text"
-                    placeholder="QmXxxx..."
-                    value={produceForm.ipfsHash}
-                    onChange={function(e) { setProduceForm({ prodId: produceForm.prodId, ipfsHash: e.target.value }); }}
+                    placeholder="0x..."
+                    value={shipForm.distributor}
+                    onChange={function(e) { setShipForm({ ...shipForm, distributor: e.target.value }); }}
                     required
                   />
                 </div>
                 <button
                   className="btn btn-success"
                   type="submit"
-                  disabled={txState.type === 'produce' && txState.status === 'pending'}
+                  disabled={txState.type === 'ship' && txState.status === 'pending'}
                 >
-                  {txState.type === 'produce' && txState.status === 'pending' ? 'Processing...' : 'Mark Ready to Ship'}
+                  {txState.type === 'ship' && txState.status === 'pending' ? 'Processing...' : 'Transfer Custody'}
                 </button>
-                {produceAlert}
+                {txAlert('ship')}
               </form>
             </div>
           </div>
@@ -268,7 +312,7 @@ function ProducerTab(props) {
             <input
               className="form-control"
               type="number"
-              placeholder="Enter Product ID"
+              placeholder="Enter Batch / Product ID"
               value={lookupId}
               onChange={function(e) { setLookupId(e.target.value); }}
               required
