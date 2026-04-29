@@ -27,3 +27,4 @@
 # Local dev logs
 /logs/*
 !/logs/.gitkeep
+blockchain/deploy.log
