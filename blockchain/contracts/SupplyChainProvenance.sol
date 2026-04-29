@@ -207,6 +207,36 @@ contract SupplyChainProvenance {
         emit ProductStatusChanged(prodId, ProductStatus.ReadyToShip, msg.sender, ipfsHash);
     }
 
+    /**
+     * @notice Producer ships a product directly to an authorized distributor.
+     * @dev Transfers on-chain custody and moves status to InTransitToWarehouse.
+     *      Accepted from InProduction or ReadyToShip states, allowing the producer
+     *      to initiate the handoff in a single transaction.
+     * @param prodId Unique product ID.
+     * @param distributor Address of the authorized distributor receiving custody.
+     */
+    function shipToDistributor(
+        uint256 prodId,
+        address distributor
+    ) public onlyRole(Role.Producer) productExists(prodId) {
+        Product storage product = productLedger[prodId];
+
+        require(product.producer == msg.sender, "Only the original producer can ship this product");
+        require(
+            product.currentStatus == ProductStatus.InProduction ||
+            product.currentStatus == ProductStatus.ReadyToShip,
+            "Product must be InProduction or ReadyToShip to ship"
+        );
+        require(rolesMapping[distributor] == Role.Distributor, "Destination address is not an authorized distributor");
+
+        address previousOwner = product.currentOwner;
+        product.currentOwner = distributor;
+        product.currentStatus = ProductStatus.InTransitToWarehouse;
+
+        emit ProductOwnershipTransferred(prodId, previousOwner, distributor);
+        emit ProductStatusChanged(prodId, ProductStatus.InTransitToWarehouse, msg.sender, product.ipfsHash);
+    }
+
     /************************************
      * Distributor Functions
      ************************************/
