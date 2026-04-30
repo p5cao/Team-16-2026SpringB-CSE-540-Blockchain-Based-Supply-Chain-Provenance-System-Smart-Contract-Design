@@ -131,7 +131,7 @@ function App() {
         {activeTab === "producer" ? <ProducerTab account={account} role={role} /> : null}
         {activeTab === "distributor" ? <DistributorTab account={account} role={role} /> : null}
         {activeTab === "retailer" ? <RetailerTab account={account} role={role} /> : null}
-        {activeTab === "consumer" ? <ConsumerTab account={account} role={role} /> : null}
+        {activeTab === "consumer" ? <ConsumerTab account={account} role={role} onConnect={connectWallet} /> : null}
         {activeTab === "admin" ? <AdminTab account={account} role={role} adminAddress={adminAddress} /> : null}
       </div>
   

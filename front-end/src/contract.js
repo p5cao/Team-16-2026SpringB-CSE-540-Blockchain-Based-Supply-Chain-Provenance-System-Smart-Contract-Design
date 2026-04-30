@@ -46,7 +46,34 @@ export const CONTRACT_ABI = [
       { "internalType": "uint256", "name": "prodId", "type": "uint256" },
       { "internalType": "string", "name": "ipfsHash", "type": "string" }
     ],
-    "name": "produce",
+    "name": "markReadyToShip",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "prodId", "type": "uint256" }],
+    "name": "verifyProduct",
+    "outputs": [
+      { "internalType": "uint256", "name": "prodId", "type": "uint256" },
+      { "internalType": "address", "name": "producer", "type": "address" },
+      { "internalType": "uint256", "name": "producerBatchId", "type": "uint256" },
+      { "internalType": "string", "name": "ipfsHash", "type": "string" },
+      { "internalType": "uint256", "name": "expirationDate", "type": "uint256" },
+      { "internalType": "uint256", "name": "currentBatchId", "type": "uint256" },
+      { "internalType": "enum SupplyChainProvenance.ProductStatus", "name": "currentStatus", "type": "uint8" },
+      { "internalType": "address", "name": "currentOwner", "type": "address" },
+      { "internalType": "uint256", "name": "parentBatchId", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "prodId", "type": "uint256" },
+      { "internalType": "string", "name": "ipfsHash", "type": "string" }
+    ],
+    "name": "purchaseProduct",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
