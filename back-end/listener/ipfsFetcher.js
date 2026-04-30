@@ -7,18 +7,18 @@ const GATEWAY = process.env.IPFS_GATEWAY || 'https://gateway.pinata.cloud/ipfs'
 
 
 // fetches ipfs json and puts in db, kinda hacky
-export async function fetchAndCacheIpfs(prodId, cid) {
-  if (!cid) return
+export async function fetchAndCacheIpfs(prodId, CID) {
+  if (!CID) return
 
-  const url = `${GATEWAY}/${cid}`
-  const controller = new AbortController()
-  const t = setTimeout(() => controller.abort(), 15000)
+  const url = `${GATEWAY}/${CID}`
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 15000)
 
-  let data
+  let ipfs_data
   try {
-    const resp = await fetch(url, { signal: controller.signal })
-    if (!resp.ok) throw new Error('http ' + resp.status)
-    data = await resp.json()
+    const httpResp = await fetch(url, { signal: ctrl.signal })
+    if (!httpResp.ok) throw new Error('http ' + httpResp.status)
+    ipfs_data = await httpResp.json()
   } finally {
     clearTimeout(t)
   }
@@ -37,28 +37,30 @@ export async function fetchAndCacheIpfs(prodId, cid) {
       ipfs_synced = 1
     where prod_id = ?
   `).run(
-    data.name || null,
-    data.producer_wallet || null,
-    data.producer_batch_id != null ? String(data.producer_batch_id) : '',
-    data.current_batch_id != null ? String(data.current_batch_id) : '',
-    data.parent_batch_id != null ? String(data.parent_batch_id) : null,
-    data.expiration_date || null,
-    data.certificate || null,
-    data.attributes ? data.attributes.origin : null,
-    data.attributes ? data.attributes.registered_at : null,
+    ipfs_data.name || null,
+    ipfs_data.producer_wallet || null,
+    ipfs_data.producer_batch_id != null ? String(ipfs_data.producer_batch_id) : '',
+    ipfs_data.current_batch_id != null ? String(ipfs_data.current_batch_id) : '',
+    ipfs_data.parent_batch_id != null ? String(ipfs_data.parent_batch_id) : null,
+    ipfs_data.expiration_date || null,
+    ipfs_data.certificate || null,
+    ipfs_data.attributes ? ipfs_data.attributes.origin : null,
+    ipfs_data.attributes ? ipfs_data.attributes.registered_at : null,
     prodId
   )
 
-  console.log(`[ipfs] cached meta for prodId=${prodId}`)
+  console.log('[ipfs] cached meta for prodId=' + prodId)
 }
 
 
 // try to fetch all the ones that failed before
 export async function retryPendingIpfsFetches() {
-  const pending = db.prepare('select prod_id, ipfs_hash from products where ipfs_synced = 0 and ipfs_hash is not null').all()
-  if (!pending.length) return
-  console.log(`[ipfs] retrying ${pending.length} pending fetchs`)
-  for (const row of pending) {
+  const todoList = db.prepare('select prod_id, ipfs_hash from products where ipfs_synced = 0 and ipfs_hash is not null').all()
+  if (!todoList.length) return
+  // TODO: maybe add a max retry count per product
+  console.log(`[ipfs] retrying ${todoList.length} pending fetchs`)
+  for (const row of todoList) {
+
     await fetchAndCacheIpfs(row.prod_id, row.ipfs_hash).catch(err =>
       console.error(`[ipfs] retry faild for prodId=${row.prod_id}:`, err.message)
     )
