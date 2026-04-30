@@ -1,11 +1,113 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import contract, { ROLES, switchToSepolia } from './contract';
+import contract, { ROLES, PRODUCT_STATUSES, switchToSepolia } from './contract';
 import Header from './components/Header';
 import ProducerTab from './components/ProducerTab';
 import DistributorTab from './components/DistributorTab';
 import RetailerTab from './components/RetailerTab';
 import ConsumerTab from './components/ConsumerTab';
 import AdminTab from './components/AdminTab';
+import ProductDetailModal from './components/ProductDetailModal';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+
+const STATUS_BADGE = {
+  0: 'bg-secondary', 1: 'bg-primary', 2: 'bg-info text-dark',
+  3: 'bg-info text-dark', 4: 'bg-success', 5: 'bg-warning text-dark',
+  6: 'bg-success', 7: 'bg-info text-dark', 8: 'bg-info text-dark',
+  9: 'bg-success', 10: 'bg-warning text-dark', 11: 'bg-primary', 12: 'bg-dark',
+};
+
+function MyProductsTable({ account, role }) {
+  const [products, setProducts]         = useState([]);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [selectedProdId, setSelectedProdId] = useState(null);
+
+  const isAdmin = role === 5;
+
+  const load = useCallback(() => {
+    if (!account) return;
+    setLoading(true);
+    setError('');
+    const url = isAdmin
+      ? `${BACKEND_URL}/api/products?limit=100`
+      : `${BACKEND_URL}/api/users/${account}/products`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => setProducts(data.products || []))
+      .catch(() => setError('Could not load products from backend.'))
+      .finally(() => setLoading(false));
+  }, [account, isAdmin]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (!account) return null;
+
+  return (
+    <div className="container pt-4 pb-0">
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h6 className="mb-0 fw-semibold">
+          {isAdmin ? '📦 All Products' : '📦 My Products'}
+        </h6>
+        <button className="btn btn-sm btn-outline-secondary" onClick={load} disabled={loading}>
+          {loading ? 'Refreshing…' : '↻ Refresh'}
+        </button>
+      </div>
+      {error && <div className="alert alert-warning py-2 small">{error}</div>}
+      {!loading && products.length === 0 && !error && (
+        <p className="text-muted small">No products found. Register a batch to get started.</p>
+      )}
+      {products.length > 0 && (
+        <div className="table-responsive">
+          <table className="table table-sm table-hover table-bordered align-middle mb-0">
+            <thead className="table-light">
+              <tr>
+                <th>Batch ID</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Owner Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map(p => {
+                const statusNum = p.current_status;
+                const statusLabel = PRODUCT_STATUSES[statusNum] || statusNum;
+                const badgeCls = STATUS_BADGE[statusNum] || 'bg-secondary';
+                const ownerRole = p.owner_role_name || 'Unregistered';
+                return (
+                  <tr key={p.prod_id}>
+                    <td><strong>#{p.prod_id}</strong></td>
+                    <td>{p.name || <span className="text-muted fst-italic">—</span>}</td>
+                    <td><span className={`badge ${badgeCls}`}>{statusLabel}</span></td>
+                    <td><code className="small">{p.current_owner ? `${p.current_owner.slice(0,6)}…${p.current_owner.slice(-4)}` : '—'}</code></td>
+                    <td><span className="badge bg-light text-dark border">{ownerRole}</span></td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-outline-primary py-0 px-2"
+                        onClick={function() { setSelectedProdId(p.prod_id); }}
+                      >
+                        🔍 View
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedProdId && (
+        <ProductDetailModal
+          prodId={selectedProdId}
+          onClose={function() { setSelectedProdId(null); }}
+        />
+      )}
+    </div>
+  );
+}
 
 const TABS = [
   { id: 'producer',    label: 'Producer',    icon: '🏭' },
@@ -107,6 +209,11 @@ function App() {
         onConnect={connectWallet}
       />
   
+      {/* Products owned by current user (or all products for admin) */}
+      <MyProductsTable account={account} role={role} />
+
+      <hr className="mt-4 mb-0" />
+
       {/* Navigation tabs */}
       <ul className="nav nav-tabs border-bottom px-3 bg-light">
         {TABS.map(function(tab) {

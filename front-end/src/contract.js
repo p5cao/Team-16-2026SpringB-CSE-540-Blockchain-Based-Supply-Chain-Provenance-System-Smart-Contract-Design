@@ -64,9 +64,7 @@ export const CONTRACT_ABI = [
   {
     "inputs": [
       { "internalType": "uint256", "name": "prodId", "type": "uint256" },
-      { "internalType": "uint256", "name": "producerBatchId", "type": "uint256" },
-      { "internalType": "string", "name": "ipfsHash", "type": "string" },
-      { "internalType": "uint256", "name": "expirationDate", "type": "uint256" }
+      { "internalType": "string", "name": "ipfsHash", "type": "string" }
     ],
     "name": "createProduct", "outputs": [], "stateMutability": "nonpayable", "type": "function"
   },
@@ -76,14 +74,9 @@ export const CONTRACT_ABI = [
     "outputs": [{
       "components": [
         { "internalType": "uint256", "name": "prodId", "type": "uint256" },
-        { "internalType": "address", "name": "producer", "type": "address" },
-        { "internalType": "uint256", "name": "producerBatchId", "type": "uint256" },
         { "internalType": "string", "name": "ipfsHash", "type": "string" },
-        { "internalType": "uint256", "name": "expirationDate", "type": "uint256" },
-        { "internalType": "uint256", "name": "currentBatchId", "type": "uint256" },
         { "internalType": "enum SupplyChainProvenance.ProductStatus", "name": "currentStatus", "type": "uint8" },
-        { "internalType": "address", "name": "currentOwner", "type": "address" },
-        { "internalType": "uint256", "name": "parentBatchId", "type": "uint256" }
+        { "internalType": "address", "name": "currentOwner", "type": "address" }
       ],
       "internalType": "struct SupplyChainProvenance.Product", "name": "", "type": "tuple"
     }],
@@ -101,14 +94,9 @@ export const CONTRACT_ABI = [
     "name": "productLedger",
     "outputs": [
       { "internalType": "uint256", "name": "prodId", "type": "uint256" },
-      { "internalType": "address", "name": "producer", "type": "address" },
-      { "internalType": "uint256", "name": "producerBatchId", "type": "uint256" },
       { "internalType": "string", "name": "ipfsHash", "type": "string" },
-      { "internalType": "uint256", "name": "expirationDate", "type": "uint256" },
-      { "internalType": "uint256", "name": "currentBatchId", "type": "uint256" },
       { "internalType": "enum SupplyChainProvenance.ProductStatus", "name": "currentStatus", "type": "uint8" },
-      { "internalType": "address", "name": "currentOwner", "type": "address" },
-      { "internalType": "uint256", "name": "parentBatchId", "type": "uint256" }
+      { "internalType": "address", "name": "currentOwner", "type": "address" }
     ],
     "stateMutability": "view", "type": "function"
   },
@@ -195,14 +183,9 @@ export const CONTRACT_ABI = [
     "outputs": [{
       "components": [
         { "internalType": "uint256", "name": "prodId", "type": "uint256" },
-        { "internalType": "address", "name": "producer", "type": "address" },
-        { "internalType": "uint256", "name": "producerBatchId", "type": "uint256" },
         { "internalType": "string", "name": "ipfsHash", "type": "string" },
-        { "internalType": "uint256", "name": "expirationDate", "type": "uint256" },
-        { "internalType": "uint256", "name": "currentBatchId", "type": "uint256" },
         { "internalType": "enum SupplyChainProvenance.ProductStatus", "name": "currentStatus", "type": "uint8" },
-        { "internalType": "address", "name": "currentOwner", "type": "address" },
-        { "internalType": "uint256", "name": "parentBatchId", "type": "uint256" }
+        { "internalType": "address", "name": "currentOwner", "type": "address" }
       ],
       "internalType": "struct SupplyChainProvenance.Product", "name": "", "type": "tuple"
     }],

@@ -6,6 +6,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")" && pwd)"
 blockchain_dir="$root/blockchain"
 frontend_dir="$root/front-end"
+backend_dir="$root/back-end"
 frontend_env="$frontend_dir/.env.local"
 
 # Deploy contract to Sepolia and sync frontend config
@@ -28,6 +29,22 @@ echo "frontend is now pointed at sepolia"
 echo "contract address: $contract_address"
 echo "make sure metamask is connected to the sepolia network"
 
-# Start frontend
+# Start backend in background
+echo "Starting backend..."
+cd "$backend_dir"
+npm start &
+backend_pid=$!
+echo "Backend started (PID $backend_pid)"
+cd "$root"
+
+# Start frontend in background
 cd "$frontend_dir"
-npm start
+npm start &
+frontend_pid=$!
+cd "$root"
+
+# Trap script exit and kill both
+trap "echo 'Stopping backend (PID $backend_pid) and frontend (PID $frontend_pid)...'; kill $backend_pid $frontend_pid 2>/dev/null; exit" SIGINT SIGTERM
+
+# Wait for both to exit
+wait $backend_pid $frontend_pid
