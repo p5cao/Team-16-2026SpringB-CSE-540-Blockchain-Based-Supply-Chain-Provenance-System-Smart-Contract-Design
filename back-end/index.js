@@ -4,7 +4,7 @@ import { createTables, resetDatabase } from './db/schema.js'
 import { startListener } from './listener/eventListener.js'
 import { retryPendingIpfsFetches } from './listener/ipfsFetcher.js'
 
-const PORT = process.env.PORT || 3001
+const port = process.env.PORT || 3001
 
 async function main() {
   if (process.env.REBUILD_ON_START === 'true') {
@@ -19,8 +19,8 @@ async function main() {
 
   startListener()
 
-  app.listen(PORT, () => {
-    console.log('backend running on port', PORT)
+  app.listen(port, () => {
+    console.log('backend running on port', port)
   })
 }
 
