@@ -7,51 +7,51 @@ import ProductDetailModal from './ProductDetailModal';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 function ProducerTab(props) {
-  const account = props.account;
-  const role = props.role;
+  const { account, role } = props;
 
   const isProducer = role === 1;
 
-  // Registration form: captures metadata fields before IPFS upload
+  // form for registering a new product - all the metadata fields
   const [regForm, setRegForm] = useState({ prodId: '', name: '', origin: '', certUrl: '', producerBatchId: '', expirationDate: '', parentBatchId: '' });
   const [isRegistering, setIsRegistering] = useState(false);
 
-  // Ship to distributor form
-  const [shipForm, setShipForm] = useState({ prodId: '', distributor: '' });
-  const [ownedProducts, setOwnedProducts] = useState([]);
-  const [distributors, setDistributors] = useState([]);
-  const [loadingShipData, setLoadingShipData] = useState(false);
+  const [ship_form, setShipForm] = useState({prodId: '', distributor: ''});
+  const [ownedProducts,setOwnedProducts] = useState([]);
+  const [distList, setDistList] = useState([]);
+  const [shipLoading, setShipLoading]   = useState(false);
 
-  const [lookupId, setLookupId]     = useState('');
-  const [lookupProdId, setLookupProdId] = useState(null);
-  const [lookupError, setLookupError]   = useState('');
-  const [txState, setTxState] = useState({ type: null, status: null, message: '' });
+  const [lookupId, setLookupId] = useState('');
+  const [lookup_prod_id,setLookupProdId] = useState(null);
+  const [lookupErr, setLookupErr] = useState('');
+  const [txState, setTxState]  = useState({ type: null, status: null, message: '' });
 
-  // Fetch producer-owned products and distributors for the Ship form
+  // load owned products + distributors when tab is first shown
+  // TODO: refresh this after a successful register/ship
   useEffect(() => {
     if (!account || !isProducer) return;
-    setLoadingShipData(true);
+
+    setShipLoading(true);
+    const userProductsUrl = `${BACKEND_URL}/api/users/${account}/products`;
+    const distUrl = `${BACKEND_URL}/api/users?role=3`;
     Promise.all([
-      fetch(`${BACKEND_URL}/api/users/${account}/products`).then(r => r.json()).catch(() => ({})),
-      fetch(`${BACKEND_URL}/api/users?role=3`).then(r => r.json()).catch(() => ({})),
-    ]).then(([prodResponse, userResponse]) => {
-      setOwnedProducts(Array.isArray(prodResponse.products) ? prodResponse.products : []);
-      setDistributors(Array.isArray(userResponse.users) ? userResponse.users : []);
-    }).finally(() => setLoadingShipData(false));
+      fetch(userProductsUrl).then(r => r.json()).catch(() => ({})),
+      fetch(distUrl).then(function(r) { return r.json(); }).catch(() => ({})),
+    ]).then(([prodResp, userResp]) => {
+      setOwnedProducts(Array.isArray(prodResp.products) ? prodResp.products : []);
+      setDistList(Array.isArray(userResp.users) ? userResp.users : []);
+    }).finally(() => setShipLoading(false));
   }, [account, isProducer]);
 
   function setTx(type, status, message) {
-    setTxState({ type: type, status: status, message: message });
+    setTxState({type, status, message});
   }
 
-  // --- WORKFLOW 1: Register Product (IPFS upload → blockchain anchor) ---
   async function handleRegister(e) {
     e.preventDefault();
     setIsRegistering(true);
     setTx('register', 'pending', 'Uploading metadata to IPFS...');
     try {
-      // Step 1: Package metadata and upload to Pinata/IPFS
-      const metadata = {
+      const ipfsMeta = {
         id: regForm.prodId,
         name: regForm.name,
         producer_wallet: account,
@@ -65,16 +65,16 @@ function ProducerTab(props) {
           registered_at: new Date().toISOString(),
         },
       };
-      const cid = await uploadToIPFS(metadata);
+      const CID = await uploadToIPFS(ipfsMeta);
 
-      // Step 2: Anchor the CID to the blockchain
+      // now anchor the cid on chain
       setTx('register', 'pending', 'Waiting for MetaMask confirmation...');
       await switchToSepolia();
       await contract.methods
-        .createProduct(regForm.prodId, cid)
+        .createProduct(regForm.prodId, CID)
         .send({ from: account, gas: '300000' });
 
-      setTx('register', 'success', `Batch #${regForm.prodId} registered. IPFS CID: ${cid}`);
+      setTx('register', 'success', `Batch #${regForm.prodId} registered. IPFS CID: ${CID}`);
       setRegForm({ prodId: '', name: '', origin: '', certUrl: '', producerBatchId: '', expirationDate: '', parentBatchId: '' });
     } catch (err) {
       setTx('register', 'error', err.message || 'Registration failed.');
@@ -83,37 +83,35 @@ function ProducerTab(props) {
     }
   }
 
-  // --- WORKFLOW 2: Ship Product to Distributor ---
   async function handleShipToDistributor(e) {
     e.preventDefault();
     setTx('ship', 'pending', 'Waiting for MetaMask confirmation...');
     try {
       await switchToSepolia();
+      const { prodId: batchId, distributor: distAddr } = ship_form;
       await contract.methods
-        .shipToDistributor(shipForm.prodId, shipForm.distributor)
+        .shipToDistributor(batchId, distAddr)
         .send({ from: account, gas: '300000' });
-      setTx('ship', 'success', `Batch #${shipForm.prodId} custody transferred to ${shipForm.distributor}.`);
+      setTx('ship', 'success', 'Batch #' + batchId + ' custody transferred to ' + distAddr + '.');
       setShipForm({ prodId: '', distributor: '' });
     } catch (err) {
       setTx('ship', 'error', err.message || 'Shipment failed. Is the address an authorized distributor?');
     }
   }
 
-  // Look up product by ID — opens the shared detail modal
-  async function handleLookup(e) {
+  const handleLookup = async (e) => {
     e.preventDefault();
     setLookupProdId(null);
-    setLookupError('');
+    setLookupErr('');
     try {
-      // Verify the product exists on-chain before opening the modal
       await readContract.methods.getProduct(lookupId).call();
       setLookupProdId(Number(lookupId));
     } catch (err) {
-      const msg = err.message || '';
-      if (msg.includes('Product does not exist')) {
-        setLookupError('No product found with ID ' + lookupId + '. Make sure the batch was registered on Sepolia.');
+      const errMsg = err.message || '';
+      if (errMsg.includes('Product does not exist')) {
+        setLookupErr('No product found with ID ' + lookupId + '. Make sure the batch was registered on Sepolia.');
       } else {
-        setLookupError('Lookup failed: ' + msg);
+        setLookupErr('Lookup failed: ' + errMsg);
       }
     }
   }
@@ -126,14 +124,10 @@ function ProducerTab(props) {
     return <AccessDenied icon="🏭" roleName="Producer" />;
   }
 
-  function txAlert(type) {
+  const txAlert = (type) => {
     if (txState.type !== type || !txState.message) return null;
-    return (
-      <div className={'alert ' + alertClass(txState.status) + ' mt-2 py-2 small'}>
-        {txState.message}
-      </div>
-    );
-  }
+    return <div className={'alert ' + alertClass(txState.status) + ' mt-2 py-2 small'}>{txState.message}</div>;
+  };
 
   return (
     <div>
@@ -141,25 +135,20 @@ function ProducerTab(props) {
       <p className="text-muted">Create the digital twin of a physical batch and manage custody transfer to distributors.</p>
 
       <div className="row g-4 mt-1">
-        {/* WORKFLOW 1: Register / Mint Digital Twin */}
+        {/* register form */}
         <div className="col-md-6">
           <div className="card h-100">
             <div className="card-header">➕ Register New Batch</div>
             <div className="card-body">
-              <p className="card-text text-muted small">
-                Uploads origin metadata to IPFS and anchors the CID to Ethereum, creating the product's provenance trail.
-              </p>
+              <p className="card-text text-muted small">Uploads origin metadata to IPFS and anchors the CID to Ethereum, creating the product's provenance trail.</p>
               <form onSubmit={handleRegister}>
                 <div className="mb-3">
                   <label className="form-label">Batch ID</label>
-                  <input
-                    className="form-control"
-                    type="number"
+                  <input className="form-control" type="number"
                     placeholder="e.g. 1001"
                     value={regForm.prodId}
-                    onChange={function(e) { setRegForm({ ...regForm, prodId: e.target.value }); }}
-                    required
-                    min="1"
+                    onChange={e => setRegForm({ ...regForm, prodId: e.target.value })}
+                    required min="1"
                   />
                 </div>
                 <div className="mb-3">
@@ -180,7 +169,7 @@ function ProducerTab(props) {
                     type="text"
                     placeholder="e.g. Huila, Colombia"
                     value={regForm.origin}
-                    onChange={function(e) { setRegForm({ ...regForm, origin: e.target.value }); }}
+                    onChange={e => setRegForm({...regForm, origin: e.target.value})}
                     required
                   />
                 </div>
@@ -202,7 +191,7 @@ function ProducerTab(props) {
                     type="number"
                     placeholder="e.g. 4000 (if derived from another batch)"
                     value={regForm.parentBatchId}
-                    onChange={function(e) { setRegForm({ ...regForm, parentBatchId: e.target.value }); }}
+                    onChange={e => setRegForm({ ...regForm, parentBatchId: e.target.value })}
                     min="1"
                   />
                 </div>
@@ -210,8 +199,7 @@ function ProducerTab(props) {
                   <label className="form-label">Expiration Date <span className="text-muted small">(optional, stored in IPFS)</span></label>
                   <input
                     className="form-control"
-                    type="date"
-                    value={regForm.expirationDate}
+                    type="date" value={regForm.expirationDate}
                     onChange={function(e) { setRegForm({ ...regForm, expirationDate: e.target.value }); }}
                   />
                 </div>
@@ -227,8 +215,7 @@ function ProducerTab(props) {
                   />
                 </div>
                 <button
-                  className="btn btn-primary"
-                  type="submit"
+                  className="btn btn-primary" type="submit"
                   disabled={isRegistering}
                 >
                   {isRegistering ? 'Uploading to IPFS & Blockchain...' : 'Create Product'}
@@ -239,37 +226,28 @@ function ProducerTab(props) {
           </div>
         </div>
 
-        {/* WORKFLOW 2: Ship to Distributor */}
+        {/* ship to distributor */}
         <div className="col-md-6">
           <div className="card h-100">
             <div className="card-header">🚚 Ship to Distributor</div>
             <div className="card-body">
-              <p className="card-text text-muted small">
-                Ships a registered batch to an authorized distributor in a single on-chain transaction.
-                The product must be in <em>In Production</em> or <em>Ready to Ship</em> status.
-              </p>
-              {loadingShipData && (
+              <p className="card-text text-muted small">Ships a registered batch to an authorized distributor in a single on-chain transaction. The product must be in <em>In Production</em> or <em>Ready to Ship</em> status.</p>
+              {shipLoading && (
                 <div className="text-muted small mb-2">Loading your batches and distributors...</div>
               )}
+              {/* TODO: auto-refresh distList after a new role is assigned */}
               <form onSubmit={handleShipToDistributor}>
                 <div className="mb-3">
                   <label className="form-label">Batch ID</label>
-                  <select
-                    className="form-select"
-                    value={shipForm.prodId}
-                    onChange={function(e) { setShipForm({ ...shipForm, prodId: e.target.value }); }}
-                    required
-                  >
+                  <select className="form-select" value={ship_form.prodId}
+                    onChange={function(e) { setShipForm({...ship_form, prodId: e.target.value}); }}
+                    required>
                     <option value="">— select your batch —</option>
-                    {ownedProducts.map(function(p) {
-                      return (
-                        <option key={p.prod_id} value={p.prod_id}>
-                          #{p.prod_id}{p.name ? ' — ' + p.name : ''}
-                        </option>
-                      );
-                    })}
+                    {ownedProducts.map(p => (
+                      <option key={p.prod_id} value={p.prod_id}>#{p.prod_id}{p.name ? ' — ' + p.name : ''}</option>
+                    ))}
                   </select>
-                  {!loadingShipData && ownedProducts.length === 0 && (
+                  {!shipLoading && ownedProducts.length === 0 && (
                     <div className="form-text text-warning">No batches found in backend. Register a batch first or wait for sync.</div>
                   )}
                 </div>
@@ -277,20 +255,17 @@ function ProducerTab(props) {
                   <label className="form-label">Distributor</label>
                   <select
                     className="form-select"
-                    value={shipForm.distributor}
-                    onChange={function(e) { setShipForm({ ...shipForm, distributor: e.target.value }); }}
+                    value={ship_form.distributor}
+                    onChange={e => setShipForm({ ...ship_form, distributor: e.target.value })}
                     required
                   >
                     <option value="">— select a distributor —</option>
-                    {distributors.map(function(u) {
-                      return (
-                        <option key={u.address} value={u.address}>
-                          {u.address.slice(0, 6)}…{u.address.slice(-4)}
-                        </option>
-                      );
+                    {distList.map(function(u) {
+                      const shortAddr = u.address.slice(0,6) + '…' + u.address.slice(-4);
+                      return <option key={u.address} value={u.address}>{shortAddr}</option>;
                     })}
                   </select>
-                  {!loadingShipData && distributors.length === 0 && (
+                  {!shipLoading && distList.length === 0 && (
                     <div className="form-text text-warning">No distributors registered on-chain yet.</div>
                   )}
                 </div>
@@ -308,31 +283,28 @@ function ProducerTab(props) {
         </div>
       </div>
 
-      {/* Product Lookup */}
+      {/* product lookup */}
       <div className="card mt-4">
         <div className="card-header">🔍 Product Lookup</div>
         <div className="card-body">
           <form className="d-flex gap-2" onSubmit={handleLookup}>
             <input
-              className="form-control"
-              type="number"
+              className="form-control" type="number"
               placeholder="Enter Batch / Product ID"
-              value={lookupId}
-              onChange={function(e) { setLookupId(e.target.value); }}
-              required
-              min="1"
+              value={lookupId} onChange={e => setLookupId(e.target.value)}
+              required min="1"
             />
             <button className="btn btn-secondary" type="submit">Look Up</button>
           </form>
-          {lookupError ? (
-            <div className="alert alert-danger mt-2 py-2 small">{lookupError}</div>
+          {lookupErr ? (
+            <div className="alert alert-danger mt-2 py-2 small">{lookupErr}</div>
           ) : null}
         </div>
       </div>
 
-      {lookupProdId && (
+      {lookup_prod_id && (
         <ProductDetailModal
-          prodId={lookupProdId}
+          prodId={lookup_prod_id}
           onClose={function() { setLookupProdId(null); }}
         />
       )}
