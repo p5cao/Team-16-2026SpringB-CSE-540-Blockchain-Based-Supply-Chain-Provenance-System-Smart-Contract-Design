@@ -1,6 +1,7 @@
 import express from 'express'
 import ProductsRouter from './routes/products.js'
 import usersRouter from './routes/users.js'
+import consumerRouter from './routes/consumer.js'
 
 const app = express()
 app.use(express.json())
@@ -16,6 +17,7 @@ app.use((req,res,next) => {
 
 app.use('/api/products', ProductsRouter)
 app.use('/api/users', usersRouter)
+app.use('/api/consumer', consumerRouter)
 
 app.use((req,res) => {
   res.status(404).json({error: 'not found'})
