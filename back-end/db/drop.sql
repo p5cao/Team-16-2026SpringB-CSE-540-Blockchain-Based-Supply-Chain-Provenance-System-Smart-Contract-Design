@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS status_history;
+DROP TABLE IF EXISTS ownership_history;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS sync_state;

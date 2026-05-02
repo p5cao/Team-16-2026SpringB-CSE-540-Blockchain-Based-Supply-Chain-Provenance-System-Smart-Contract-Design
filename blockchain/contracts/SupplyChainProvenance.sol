@@ -56,21 +56,16 @@ contract SupplyChainProvenance {
 
     /**
      * @notice Product record stored on-chain.
-     * @dev Only lightweight provenance data is stored on-chain.
-     *      Detailed files and metadata are expected to remain off-chain,
-     *      referenced by IPFS hash or similar content identifier.
+     * @dev Only the minimal provenance anchor is stored on-chain.
+     *      All batch/producer/expiry metadata is stored off-chain and
+     *      referenced by the IPFS hash (producerBatchId, producer address,
+     *      currentBatchId, parentBatchId, and expirationDate live in IPFS).
      */
     struct Product {
         uint256 prodId;              // Unique product or batch ID
-        address producer;            // Original producer
-        uint256 producerBatchId;     // Producer-side batch reference
-        string ipfsHash;             // Off-chain metadata pointer
-        uint256 expirationDate;      // Optional expiration timestamp
-
-        uint256 currentBatchId;      // Current batch ID after split/merge handling
+        string ipfsHash;             // Off-chain metadata pointer (IPFS CID)
         ProductStatus currentStatus; // Current lifecycle status
         address currentOwner;        // Current custodian / owner
-        uint256 parentBatchId;       // Parent batch reference if derived from another batch
     }
 
     // Main on-chain ledger for product records.
@@ -132,7 +127,7 @@ contract SupplyChainProvenance {
      * @param prodId Product ID to check.
      */
     modifier productExists(uint256 prodId) {
-        require(productLedger[prodId].producer != address(0), "Product does not exist");
+        require(productLedger[prodId].currentOwner != address(0), "Product does not exist");
         _;
     }
 
@@ -158,29 +153,23 @@ contract SupplyChainProvenance {
     /**
      * @notice Producer creates a new product or batch record.
      * @dev Initial status is set to InProduction, and producer becomes current owner.
+     *      Batch IDs, producer address, expiration date, and other metadata are
+     *      stored off-chain in the IPFS document referenced by ipfsHash.
      * @param prodId Unique product ID.
-     * @param producerBatchId Producer-defined batch ID.
-     * @param ipfsHash Off-chain metadata pointer.
-     * @param expirationDate Expiration date if applicable.
+     * @param ipfsHash IPFS CID pointing to off-chain metadata
+     *                 (includes producerBatchId, producer, expirationDate, etc.).
      */
     function createProduct(
         uint256 prodId,
-        uint256 producerBatchId,
-        string memory ipfsHash,
-        uint256 expirationDate
+        string memory ipfsHash
     ) public onlyRole(Role.Producer) {
-        require(productLedger[prodId].producer == address(0), "Product already exists");
+        require(productLedger[prodId].currentOwner == address(0), "Product already exists");
 
         productLedger[prodId] = Product({
             prodId: prodId,
-            producer: msg.sender,
-            producerBatchId: producerBatchId,
             ipfsHash: ipfsHash,
-            expirationDate: expirationDate,
-            currentBatchId: producerBatchId,
             currentStatus: ProductStatus.InProduction,
-            currentOwner: msg.sender,
-            parentBatchId: 0
+            currentOwner: msg.sender
         });
 
         emit ProductCreated(prodId, msg.sender, ipfsHash);
@@ -198,13 +187,43 @@ contract SupplyChainProvenance {
     ) public onlyRole(Role.Producer) productExists(prodId) {
         Product storage product = productLedger[prodId];
 
-        require(product.producer == msg.sender, "Only the producer can update this product");
+        require(product.currentOwner == msg.sender, "Only the current owner can update this product");
         require(product.currentStatus == ProductStatus.InProduction, "Product is not in production");
 
         product.currentStatus = ProductStatus.ReadyToShip;
         product.ipfsHash = ipfsHash;
 
         emit ProductStatusChanged(prodId, ProductStatus.ReadyToShip, msg.sender, ipfsHash);
+    }
+
+    /**
+     * @notice Producer ships a product directly to an authorized distributor.
+     * @dev Transfers on-chain custody and moves status to InTransitToWarehouse.
+     *      Accepted from InProduction or ReadyToShip states, allowing the producer
+     *      to initiate the handoff in a single transaction.
+     * @param prodId Unique product ID.
+     * @param distributor Address of the authorized distributor receiving custody.
+     */
+    function shipToDistributor(
+        uint256 prodId,
+        address distributor
+    ) public onlyRole(Role.Producer) productExists(prodId) {
+        Product storage product = productLedger[prodId];
+
+        require(product.currentOwner == msg.sender, "Only the current owner can ship this product");
+        require(
+            product.currentStatus == ProductStatus.InProduction ||
+            product.currentStatus == ProductStatus.ReadyToShip,
+            "Product must be InProduction or ReadyToShip to ship"
+        );
+        require(rolesMapping[distributor] == Role.Distributor, "Destination address is not an authorized distributor");
+
+        address previousOwner = product.currentOwner;
+        product.currentOwner = distributor;
+        product.currentStatus = ProductStatus.InTransitToWarehouse;
+
+        emit ProductOwnershipTransferred(prodId, previousOwner, distributor);
+        emit ProductStatusChanged(prodId, ProductStatus.InTransitToWarehouse, msg.sender, product.ipfsHash);
     }
 
     /************************************

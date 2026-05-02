@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import contract, { switchToSepolia } from '../contract';
+import contract, { readContract, switchToSepolia } from '../contract';
 import { WalletNotConnected, AccessDenied, alertClass } from './TabHelpers';
-import { ProductCard } from './ProducerTab';
+import ProductDetailModal from './ProductDetailModal';
 
 function RetailerTab(props) {
   const account = props.account;
@@ -13,7 +13,7 @@ function RetailerTab(props) {
   const [storeForm, setStoreForm] = useState({ prodId: '', ipfsHash: '' });
   const [returnForm, setReturnForm] = useState({ prodId: '', ipfsHash: '' });
   const [lookupId, setLookupId] = useState('');
-  const [lookupResult, setLookupResult] = useState(null);
+  const [lookupProdId, setLookupProdId] = useState(null);
   const [lookupError, setLookupError] = useState('');
   const [txState, setTxState] = useState({ type: null, status: null, message: '' });
 
@@ -68,19 +68,18 @@ function RetailerTab(props) {
 
   async function handleLookup(e) {
     e.preventDefault();
-    setLookupResult(null);
+    setLookupProdId(null);
     setLookupError('');
     try {
-      const result = await contract.methods.productLedger(lookupId).call();
-      const noProduct = result.prodId && result.prodId.toString() === '0'
-        && result.producer === '0x0000000000000000000000000000000000000000';
-      if (noProduct) {
-        setLookupError('No product found with this ID.');
-      } else {
-        setLookupResult(result);
-      }
+      await readContract.methods.getProduct(lookupId).call();
+      setLookupProdId(Number(lookupId));
     } catch (err) {
-      setLookupError('Failed to fetch product. Check the ID and try again.');
+      const errMsg = err.message || '';
+      if (errMsg.includes('Product does not exist')) {
+        setLookupError('No product found with ID ' + lookupId + '.');
+      } else {
+        setLookupError('Lookup failed: ' + errMsg);
+      }
     }
   }
 
@@ -276,9 +275,15 @@ function RetailerTab(props) {
           {lookupError ? (
             <div className="alert alert-danger mt-2 py-2 small">{lookupError}</div>
           ) : null}
-          {lookupResult ? <ProductCard product={lookupResult} /> : null}
         </div>
       </div>
+
+      {lookupProdId ? (
+        <ProductDetailModal
+          prodId={lookupProdId}
+          onClose={function() { setLookupProdId(null); }}
+        />
+      ) : null}
     </div>
   );
 }
