@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import contract, { readContract, switchToSepolia } from '../contract';
 import { WalletNotConnected, AccessDenied, alertClass } from './TabHelpers';
 import ProductDetailModal from './ProductDetailModal';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 function RetailerTab(props) {
   const account = props.account;
@@ -12,13 +14,59 @@ function RetailerTab(props) {
   const [receiveForm, setReceiveForm] = useState({ prodId: '', ipfsHash: '' });
   const [storeForm, setStoreForm] = useState({ prodId: '', ipfsHash: '' });
   const [returnForm, setReturnForm] = useState({ prodId: '', ipfsHash: '' });
+  const [retailerProducts, setRetailerProducts] = useState([]);
+  const [distributors, setDistributors] = useState([]);
+  const [dbLoading, setDbLoading] = useState(false);
   const [lookupId, setLookupId] = useState('');
   const [lookupProdId, setLookupProdId] = useState(null);
   const [lookupError, setLookupError] = useState('');
   const [txState, setTxState] = useState({ type: null, status: null, message: '' });
 
+  const refreshDbLists = useCallback(function() {
+    if (!account || !isRetailer) return;
+    setDbLoading(true);
+    Promise.all([
+      fetch(`${BACKEND_URL}/api/users/${account}/products`).then(function(r) { return r.json(); }).catch(function() { return {}; }),
+      fetch(`${BACKEND_URL}/api/users?role=3`).then(function(r) { return r.json(); }).catch(function() { return {}; })
+    ]).then(function(results) {
+      const productResp = results[0];
+      const distributorResp = results[1];
+      setRetailerProducts(Array.isArray(productResp.products) ? productResp.products : []);
+      setDistributors(Array.isArray(distributorResp.users) ? distributorResp.users : []);
+    }).finally(function() {
+      setDbLoading(false);
+    });
+  }, [account, isRetailer]);
+
+  useEffect(function() {
+    refreshDbLists();
+  }, [refreshDbLists]);
+
   function setTx(type, status, message) {
     setTxState({ type: type, status: status, message: message });
+  }
+
+  function productLabel(product) {
+    const name = product.name ? ' - ' + product.name : '';
+    return '#' + product.prod_id + name;
+  }
+
+  function productOptions(statuses) {
+    return retailerProducts
+      .filter(function(product) { return statuses.indexOf(Number(product.current_status)) >= 0; })
+      .map(function(product) {
+        return <option key={product.prod_id} value={product.prod_id}>{productLabel(product)}</option>;
+      });
+  }
+
+  function distributorOptions() {
+    return distributors.map(function(user) {
+      return (
+        <option key={user.address} value={user.address}>
+          {user.address.slice(0, 6)}...{user.address.slice(-4)}
+        </option>
+      );
+    });
   }
 
   async function handleReceiveProduct(e) {
@@ -31,6 +79,7 @@ function RetailerTab(props) {
         .send({ from: account, gas: '300000' });
       setTx('receive', 'success', 'Product #' + receiveForm.prodId + ' received and quality checked.');
       setReceiveForm({ prodId: '', ipfsHash: '' });
+      refreshDbLists();
     } catch (err) {
       setTx('receive', 'error', err.message || 'Transaction failed.');
     }
@@ -46,6 +95,7 @@ function RetailerTab(props) {
         .send({ from: account, gas: '300000' });
       setTx('store', 'success', 'Product #' + storeForm.prodId + ' placed in store.');
       setStoreForm({ prodId: '', ipfsHash: '' });
+      refreshDbLists();
     } catch (err) {
       setTx('store', 'error', err.message || 'Transaction failed.');
     }
@@ -61,6 +111,7 @@ function RetailerTab(props) {
         .send({ from: account, gas: '300000' });
       setTx('return', 'success', 'Product #' + returnForm.prodId + ' marked for return to warehouse.');
       setReturnForm({ prodId: '', ipfsHash: '' });
+      refreshDbLists();
     } catch (err) {
       setTx('return', 'error', err.message || 'Transaction failed.');
     }
@@ -122,6 +173,9 @@ function RetailerTab(props) {
     <div>
       <h4>🛍️ Retailer Dashboard</h4>
       <p className="text-muted">Handle incoming shipments, store inventory, and return rejected products to the warehouse.</p>
+      {dbLoading ? (
+        <div className="text-muted small mb-2">Loading products and distributors from backend...</div>
+      ) : null}
 
       <div className="row g-4 mt-1">
         {/* Receive Product */}
@@ -133,15 +187,18 @@ function RetailerTab(props) {
               <form onSubmit={handleReceiveProduct}>
                 <div className="mb-3">
                   <label className="form-label">Product ID</label>
-                  <input
-                    className="form-control"
-                    type="number"
-                    placeholder="e.g. 1001"
+                  <select
+                    className="form-select"
                     value={receiveForm.prodId}
                     onChange={function(e) { setReceiveForm({ prodId: e.target.value, ipfsHash: receiveForm.ipfsHash }); }}
                     required
-                    min="1"
-                  />
+                  >
+                    <option value="">-- select shipped product --</option>
+                    {productOptions([8])}
+                  </select>
+                  {!dbLoading && productOptions([8]).length === 0 ? (
+                    <div className="form-text text-warning">No products are currently shipped to this retailer.</div>
+                  ) : null}
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Updated IPFS Hash</label>
@@ -176,15 +233,18 @@ function RetailerTab(props) {
               <form onSubmit={handlePlaceInStore}>
                 <div className="mb-3">
                   <label className="form-label">Product ID</label>
-                  <input
-                    className="form-control"
-                    type="number"
-                    placeholder="e.g. 1001"
+                  <select
+                    className="form-select"
                     value={storeForm.prodId}
                     onChange={function(e) { setStoreForm({ prodId: e.target.value, ipfsHash: storeForm.ipfsHash }); }}
                     required
-                    min="1"
-                  />
+                  >
+                    <option value="">-- select received product --</option>
+                    {productOptions([9])}
+                  </select>
+                  {!dbLoading && productOptions([9]).length === 0 ? (
+                    <div className="form-text text-warning">No retailer quality-checked products are ready for store placement.</div>
+                  ) : null}
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Updated IPFS Hash</label>
@@ -218,19 +278,30 @@ function RetailerTab(props) {
           <p className="card-text text-muted small">Mark a retailer-held product as returned so the distributor can receive it back.</p>
           <form onSubmit={handleReturnToWarehouse}>
             <div className="row g-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Product ID</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  placeholder="e.g. 1001"
+                <select
+                  className="form-select"
                   value={returnForm.prodId}
                   onChange={function(e) { setReturnForm({ prodId: e.target.value, ipfsHash: returnForm.ipfsHash }); }}
                   required
-                  min="1"
-                />
+                >
+                  <option value="">-- select product --</option>
+                  {productOptions([8, 9, 11])}
+                </select>
+                {!dbLoading && productOptions([8, 9, 11]).length === 0 ? (
+                  <div className="form-text text-warning">No retailer-held products are returnable.</div>
+                ) : null}
               </div>
-              <div className="col-md-6">
+              <div className="col-md-3">
+                <label className="form-label">Distributor</label>
+                <select className="form-select" disabled defaultValue="">
+                  <option value="">-- backend list --</option>
+                  {distributorOptions()}
+                </select>
+                <div className="form-text">Reference only; the contract return function does not take a distributor address.</div>
+              </div>
+              <div className="col-md-4">
                 <label className="form-label">Updated IPFS Hash</label>
                 <input
                   className="form-control"
