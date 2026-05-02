@@ -28,3 +28,8 @@
 /logs/*
 !/logs/.gitkeep
 blockchain/deploy.log
+
+# SQLite runtime files (do not commit)
+back-end/data/*.db
+back-end/data/*.db-shm
+back-end/data/*.db-wal
