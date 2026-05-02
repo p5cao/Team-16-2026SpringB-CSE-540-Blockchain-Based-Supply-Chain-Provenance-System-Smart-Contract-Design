@@ -71,19 +71,14 @@ describe("SupplyChainProvenance", function () {
 
     await contract
       .connect(producer)
-      .createProduct(1, 1001, "QmProducerBatch001", 1893456000);
+      .createProduct(1, "QmProducerBatch001");
 
     const product = await contract.productLedger(1);
 
     expect(product.prodId).to.equal(1n);
-    expect(product.producer).to.equal(await producer.getAddress());
-    expect(product.producerBatchId).to.equal(1001n);
     expect(product.ipfsHash).to.equal("QmProducerBatch001");
-    expect(product.expirationDate).to.equal(1893456000n);
-    expect(product.currentBatchId).to.equal(1001n);
     expect(product.currentStatus).to.equal(ProductStatus.InProduction);
     expect(product.currentOwner).to.equal(await producer.getAddress());
-    expect(product.parentBatchId).to.equal(0n);
   });
 
   it("should allow distributor to receive product at warehouse after producer marks it ready", async function () {
@@ -92,7 +87,7 @@ describe("SupplyChainProvenance", function () {
 
     await contract
       .connect(producer)
-      .createProduct(1, 1001, "QmProducerBatch001", 1893456000);
+      .createProduct(1, "QmProducerBatch001");
 
     await contract
       .connect(producer)
@@ -116,7 +111,7 @@ describe("SupplyChainProvenance", function () {
     const ctx = await loadFixture(deployWithRolesFixture);
     const { contract, producer, distributor, retailer, consumer } = ctx;
     const prodId = 42n;
-    await contract.connect(producer).createProduct(prodId, 7001, "QmProducerBatch001", 1893456000);
+    await contract.connect(producer).createProduct(prodId, "QmProducerBatch001");
     await contract.connect(producer).markReadyToShip(prodId, "QmReady");
     await contract.connect(distributor).receiveAtWarehouse(prodId, "QmRecv");
     await contract.connect(distributor).passWarehouseQualityCheck(prodId, "QmWHQC");
@@ -132,7 +127,7 @@ describe("SupplyChainProvenance", function () {
 
     await contract
       .connect(producer)
-      .createProduct(9, 1, "QmA", 0);
+      .createProduct(9, "QmA");
 
     const v = await contract.verifyProduct(9);
     const g = await contract.getProduct(9);
@@ -167,7 +162,7 @@ describe("SupplyChainProvenance", function () {
 
     await contract
       .connect(producer)
-      .createProduct(99, 1, "QmA", 0);
+      .createProduct(99, "QmA");
     await contract.connect(producer).markReadyToShip(99, "QmR");
 
     await expect(

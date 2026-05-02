@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import contract, { ROLES, switchToSepolia } from '../contract';
 import { WalletNotConnected, alertClass } from './TabHelpers';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 // Role options for the dropdown
 const ROLE_OPTIONS = [
@@ -23,6 +25,14 @@ function AdminTab(props) {
   const [lookupRole, setLookupRole] = useState(null);
   const [lookupError, setLookupError] = useState('');
   const [txState, setTxState] = useState({ status: null, message: '' });
+  const [knownUsers, setKnownUsers] = useState([]);
+
+  useEffect(function() {
+    fetch(`${BACKEND_URL}/api/users`)
+      .then(function(r) { return r.json(); })
+      .then(function(data) { setKnownUsers(data.users || []); })
+      .catch(function() {});
+  }, []);
 
   // Pick badge color for a role number
   function roleBadgeColor(r) {
@@ -166,11 +176,21 @@ function AdminTab(props) {
                   <input
                     className="form-control"
                     type="text"
-                    placeholder="0x..."
+                    list="known-users-list"
+                    placeholder="0x… or pick from list"
                     value={lookupAddr}
                     onChange={function(e) { setLookupAddr(e.target.value); }}
                     required
                   />
+                  <datalist id="known-users-list">
+                    {knownUsers.map(function(u) {
+                      return (
+                        <option key={u.address} value={u.address}>
+                          {u.role_name} — {u.address.slice(0,6)}…{u.address.slice(-4)}
+                        </option>
+                      );
+                    })}
+                  </datalist>
                 </div>
                 <button className="btn btn-secondary" type="submit">Check Role</button>
                 {lookupError ? (
