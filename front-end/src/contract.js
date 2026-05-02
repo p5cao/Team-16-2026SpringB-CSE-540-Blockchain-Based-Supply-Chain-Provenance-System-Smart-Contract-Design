@@ -5,7 +5,7 @@ import web3 from "./web3";
 // or in .env for production (Sepolia). Falls back to the last known Sepolia address.
 export const CONTRACT_ADDRESS =
   process.env.REACT_APP_CONTRACT_ADDRESS ||
-  "0x685E3d760E481a684e0607b4d1792FB3a5d4DBCD";
+  "0xf68F4A5aaE2F444aA43111004CE56f1261C1234f";
 
 // ABI for the contract, copy-pasted from compilation output
 export const CONTRACT_ABI = [
@@ -47,6 +47,36 @@ export const CONTRACT_ABI = [
       { "internalType": "string", "name": "ipfsHash", "type": "string" }
     ],
     "name": "produce",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "prodId", "type": "uint256" },
+      { "internalType": "string", "name": "ipfsHash", "type": "string" }
+    ],
+    "name": "retailerReceiveProduct",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "prodId", "type": "uint256" },
+      { "internalType": "string", "name": "ipfsHash", "type": "string" }
+    ],
+    "name": "placeInStore",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "prodId", "type": "uint256" },
+      { "internalType": "string", "name": "ipfsHash", "type": "string" }
+    ],
+    "name": "returnToWarehouse",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

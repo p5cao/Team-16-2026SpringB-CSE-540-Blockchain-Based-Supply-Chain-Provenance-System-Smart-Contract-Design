@@ -397,8 +397,22 @@ contract SupplyChainProvenance {
         // 3. Emit status change event.
 
         Product storage product = productLedger[prodId];
+        require(product.currentOwner == msg.sender, "Only the current retailer can return this product");
+        require(
+            product.currentStatus == ProductStatus.ShippedToRetailer ||
+            product.currentStatus == ProductStatus.RetailerQualityCheckPassed ||
+            product.currentStatus == ProductStatus.InStore,
+            "Product is not returnable by retailer"
+        );        
+        product.currentStatus = ProductStatus.RetailerReturnedToWarehouse;
         product.ipfsHash = ipfsHash;
-        prodId;
+
+        emit ProductStatusChanged(
+        prodId,
+        ProductStatus.RetailerReturnedToWarehouse,
+        msg.sender,
+        ipfsHash
+    );
     }
 
     /************************************
