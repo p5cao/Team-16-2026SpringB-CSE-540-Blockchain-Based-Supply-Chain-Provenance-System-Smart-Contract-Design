@@ -247,7 +247,7 @@ function App() {
         Supply Chain Provenance &middot; Sepolia Testnet &nbsp;·&nbsp;
         Contract:{" "}
         <a
-          href="https://sepolia.etherscan.io/address/0xE40395b469F6E5b95E4bE18aC475C2aE40a4EA97"
+          href="https://sepolia.etherscan.io/address/0xf68F4A5aaE2F444aA43111004CE56f1261C1234f"
           target="_blank"
           rel="noreferrer"
         >
