@@ -242,7 +242,14 @@ contract SupplyChainProvenance {
     ) public onlyRole(Role.Distributor) productExists(prodId) {
         Product storage product = productLedger[prodId];
 
-        require(product.currentStatus == ProductStatus.ReadyToShip, "Product is not ready to ship");
+        require(
+            product.currentStatus == ProductStatus.InTransitToWarehouse ||
+            product.currentStatus == ProductStatus.ReadyToShip,
+            "Product is not in transit to warehouse"
+        );
+        if (product.currentStatus == ProductStatus.InTransitToWarehouse) {
+            require(product.currentOwner == msg.sender, "Only receiving distributor can receive this product");
+        }
 
         address previousOwner = product.currentOwner;
         product.currentOwner = msg.sender;
