@@ -1,4 +1,4 @@
-# CSE540 Team 16 Project Blockchain Based Supply Chain Provenance System Smart Contract Design
+# CSE540 Team 16 Project Blockchain Based Supply Chain Provenance System Repo
 
 A hybrid blockchain-based supply chain provenance system, combining on chain smart contracts, an off-chain event backend server to seed the index db, and a modern web frontend with react.js.
 
