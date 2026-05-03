@@ -164,14 +164,7 @@ To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
 	npx hardhat keystore set SEPOLIA_PRIVATE_KEY
 
     cp .env.example .env
-
-
-    # replace these placeholders with your credentials <YOUR_API_KEY> and <0xYOUR_WALLET_PRIVATE_KEY>
-    # Never commit this file. This is already added to .gitignore
-
-    npm run deploy
-
-    ```
+	```
 
 
 ### Deployment/Execution backend event listener ###
