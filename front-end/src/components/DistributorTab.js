@@ -27,7 +27,7 @@ function ProductStepForm(props) {
         <select
           className="form-select"
           value={form.prodId}
-          onChange={function(e) { setForm({ prodId: e.target.value, ipfsHash: form.ipfsHash }); }}
+          onChange={function(e) { var pid = e.target.value; var found = (props.productsData || []).find(function(p) { return String(p.prod_id) === String(pid); }); setForm({ prodId: pid, ipfsHash: found ? (found.ipfs_hash || '') : '' }); }}
           required
         >
           <option value="">{props.placeholder}</option>
@@ -38,13 +38,14 @@ function ProductStepForm(props) {
         ) : null}
       </div>
       <div className="mb-3">
-        <label className="form-label">Updated IPFS Hash</label>
+        <label className="form-label">IPFS Hash</label>
         <input
           className="form-control"
           type="text"
-          placeholder="QmXxxx..."
+          placeholder="Auto-populated from product record"
           value={form.ipfsHash}
           onChange={function(e) { setForm({ prodId: form.prodId, ipfsHash: e.target.value }); }}
+          disabled
           required
         />
       </div>
@@ -232,6 +233,7 @@ function DistributorTab(props) {
                 form={receiveForm}
                 setForm={setReceiveForm}
                 onSubmit={handleReceive}
+                productsData={distributorProducts}
                 pending={txState.type === 'receive' && txState.status === 'pending'}
                 loading={dbLoading}
                 placeholder="-- select inbound product --"
@@ -255,6 +257,7 @@ function DistributorTab(props) {
                 form={qcForm}
                 setForm={setQcForm}
                 onSubmit={handleQc}
+                productsData={distributorProducts}
                 pending={txState.type === 'qc' && txState.status === 'pending'}
                 loading={dbLoading}
                 placeholder="-- select received product --"
@@ -278,6 +281,7 @@ function DistributorTab(props) {
                 form={storeForm}
                 setForm={setStoreForm}
                 onSubmit={handleStore}
+                productsData={distributorProducts}
                 pending={txState.type === 'store' && txState.status === 'pending'}
                 loading={dbLoading}
                 placeholder="-- select quality-checked product --"
@@ -306,7 +310,7 @@ function DistributorTab(props) {
                     <select
                       className="form-select"
                       value={shipForm.prodId}
-                      onChange={function(e) { setShipForm({ prodId: e.target.value, retailer: shipForm.retailer, ipfsHash: shipForm.ipfsHash }); }}
+                      onChange={function(e) { var pid = e.target.value; var found = distributorProducts.find(function(p) { return String(p.prod_id) === String(pid); }); setShipForm({ prodId: pid, retailer: shipForm.retailer, ipfsHash: found ? (found.ipfs_hash || '') : '' }); }}
                       required
                     >
                       <option value="">-- select warehouse product --</option>
@@ -338,13 +342,14 @@ function DistributorTab(props) {
                     </datalist>
                   </div>
                   <div className="col-md-3">
-                    <label className="form-label">Updated IPFS Hash</label>
+                    <label className="form-label">IPFS Hash</label>
                     <input
                       className="form-control"
                       type="text"
-                      placeholder="QmXxxx..."
+                      placeholder="Auto-populated from product record"
                       value={shipForm.ipfsHash}
                       onChange={function(e) { setShipForm({ prodId: shipForm.prodId, retailer: shipForm.retailer, ipfsHash: e.target.value }); }}
+                      disabled
                       required
                     />
                   </div>
@@ -373,6 +378,7 @@ function DistributorTab(props) {
                 form={returnForm}
                 setForm={setReturnForm}
                 onSubmit={handleReceiveReturn}
+                productsData={returnableProducts}
                 pending={txState.type === 'return' && txState.status === 'pending'}
                 loading={dbLoading}
                 placeholder="-- select returned product --"

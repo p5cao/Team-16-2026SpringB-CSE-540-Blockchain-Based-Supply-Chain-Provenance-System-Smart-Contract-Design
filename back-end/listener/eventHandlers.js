@@ -47,6 +47,33 @@ export async function handleProductCreated(log,provider) {
 
   console.log(`[ProductCreated] prodId=${prodId} (block ${log.blockNumber})`)
   fetchAndCacheIpfs(prodId, ipfsHash).catch(err => console.error('[IPFS] failed for prodId='+prodId, err.message))
+
+  // Insert initial status history (status 0 = InProduction)
+  db.prepare(`
+    INSERT INTO status_history (prod_id, new_status, new_status_name, updated_by, ipfs_hash, block_number, tx_hash, block_timestamp)
+    VALUES (@prodId, 0, @statusName, @producer, @ipfsHash, @block, @txHash, @ts)
+  `).run({
+    prodId,
+    statusName: statusName(0),
+    producer: log.args.producer.toLowerCase(),
+    ipfsHash,
+    block: log.blockNumber,
+    txHash: log.transactionHash,
+    ts: await getBlockTime(provider, log.blockNumber)
+  })
+
+  // Insert initial ownership history (previous_owner is empty)
+  db.prepare(`
+    INSERT INTO ownership_history (prod_id, previous_owner, new_owner, block_number, tx_hash, block_timestamp)
+    VALUES (@prodId, @prevOwner, @newOwner, @block, @txHash, @ts)
+  `).run({
+    prodId,
+    prevOwner: '',
+    newOwner: log.args.producer.toLowerCase(),
+    block: log.blockNumber,
+    txHash: log.transactionHash,
+    ts: await getBlockTime(provider, log.blockNumber)
+  })
 }
 
 export async function handleProductStatusChanged(log, provider) {

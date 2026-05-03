@@ -190,7 +190,7 @@ function RetailerTab(props) {
                   <select
                     className="form-select"
                     value={receiveForm.prodId}
-                    onChange={function(e) { setReceiveForm({ prodId: e.target.value, ipfsHash: receiveForm.ipfsHash }); }}
+                    onChange={function(e) { var pid = e.target.value; var found = retailerProducts.find(function(p) { return String(p.prod_id) === String(pid); }); setReceiveForm({ prodId: pid, ipfsHash: found ? (found.ipfs_hash || '') : '' }); }}
                     required
                   >
                     <option value="">-- select shipped product --</option>
@@ -201,13 +201,14 @@ function RetailerTab(props) {
                   ) : null}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Updated IPFS Hash</label>
+                  <label className="form-label">IPFS Hash</label>
                   <input
                     className="form-control"
                     type="text"
-                    placeholder="QmXxxx..."
+                    placeholder="Auto-populated from product record"
                     value={receiveForm.ipfsHash}
                     onChange={function(e) { setReceiveForm({ prodId: receiveForm.prodId, ipfsHash: e.target.value }); }}
+                    disabled
                     required
                   />
                 </div>
@@ -236,7 +237,7 @@ function RetailerTab(props) {
                   <select
                     className="form-select"
                     value={storeForm.prodId}
-                    onChange={function(e) { setStoreForm({ prodId: e.target.value, ipfsHash: storeForm.ipfsHash }); }}
+                    onChange={function(e) { var pid = e.target.value; var found = retailerProducts.find(function(p) { return String(p.prod_id) === String(pid); }); setStoreForm({ prodId: pid, ipfsHash: found ? (found.ipfs_hash || '') : '' }); }}
                     required
                   >
                     <option value="">-- select received product --</option>
@@ -247,13 +248,14 @@ function RetailerTab(props) {
                   ) : null}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Updated IPFS Hash</label>
+                  <label className="form-label">IPFS Hash</label>
                   <input
                     className="form-control"
                     type="text"
-                    placeholder="QmXxxx..."
+                    placeholder="Auto-populated from product record"
                     value={storeForm.ipfsHash}
                     onChange={function(e) { setStoreForm({ prodId: storeForm.prodId, ipfsHash: e.target.value }); }}
+                    disabled
                     required
                   />
                 </div>
@@ -283,7 +285,7 @@ function RetailerTab(props) {
                 <select
                   className="form-select"
                   value={returnForm.prodId}
-                  onChange={function(e) { setReturnForm({ prodId: e.target.value, ipfsHash: returnForm.ipfsHash }); }}
+                  onChange={function(e) { var pid = e.target.value; var found = retailerProducts.find(function(p) { return String(p.prod_id) === String(pid); }); setReturnForm({ prodId: pid, ipfsHash: found ? (found.ipfs_hash || '') : '' }); }}
                   required
                 >
                   <option value="">-- select product --</option>
@@ -302,13 +304,14 @@ function RetailerTab(props) {
                 <div className="form-text">Reference only; the contract return function does not take a distributor address.</div>
               </div>
               <div className="col-md-4">
-                <label className="form-label">Updated IPFS Hash</label>
+                <label className="form-label">IPFS Hash</label>
                 <input
                   className="form-control"
                   type="text"
-                  placeholder="QmXxxx..."
+                  placeholder="Auto-populated from product record"
                   value={returnForm.ipfsHash}
                   onChange={function(e) { setReturnForm({ prodId: returnForm.prodId, ipfsHash: e.target.value }); }}
+                  disabled
                   required
                 />
               </div>
