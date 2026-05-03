@@ -127,7 +127,7 @@ Now using node v24.14.1 (npm v11.11.0)
 
 $ node -v
 v24.14.1
-
+```
 
 ### Make a deployment to Sepolia
 
