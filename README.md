@@ -148,7 +148,6 @@ To run the deployment to a local chain:
     ```sh
     npm run test test/SupplyChainProvenance.ts
     ```
-**(Deployment work still in progress)**
 
 6. **Deploy smart contract local** 
     ```
@@ -164,7 +163,7 @@ To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
 ```shell
 npx hardhat keystore set SEPOLIA_PRIVATE_KEY
 ```
-
+	```shell
     cp .env.example .env
 
 
