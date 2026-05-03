@@ -160,10 +160,9 @@ You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plug
 
 To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
-	```shell
+	```sh
+	npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+
     cp .env.example .env
 
 
